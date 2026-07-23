@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Search alumni{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Search alumni</h1>
+    <form method="get">
+        <div class="grid filter-grid">
+            {% for field in filter.form %}
+                <div>
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="actions">
+            <button class="btn" type="submit">Search</button>
+            <a class="btn secondary" href="{% url 'directory:alumni-list' %}">Reset</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <p class="muted">
+        {{ total_results }} result{{ total_results|pluralize }}
+        {% if has_query %}for your search{% endif %}.
+    </p>
+
+    {% if page_obj.object_list %}
+    <table>
+        <thead>
+            <tr><th>Name</th><th>Batch</th><th>Field</th><th>Current city</th><th>Country</th><th>Works at</th></tr>
+        </thead>
+        <tbody>
+        {% for a in page_obj.object_list %}
+            <tr>
+                <td><a href="{{ a.get_absolute_url }}">{{ a.full_name }}</a></td>
+                <td>{{ a.batch|default:"—" }}</td>
+                <td>{{ a.get_field_of_study_display|default:"—" }}</td>
+                <td>{{ a.current_city|default:"—" }}</td>
+                <td>{% if a.current_country %}{{ a.current_country.name }}{% else %}—{% endif %}</td>
+                <td>{{ a.employer_organization|default:"—" }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a class="btn secondary" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">← Prev</a>
+        {% endif %}
+        <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a class="btn secondary" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+        <p class="muted">No alumni matched your search. Try broadening the filters.</p>
+    {% endif %}
+</div>
+{% endblock %}

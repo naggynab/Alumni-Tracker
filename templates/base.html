@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} · DOECE / IOE Alumni Tracker</title>
+    <style>
+        :root{
+            --bg:#f5f7fa; --card:#ffffff; --ink:#1b2733; --muted:#66788a;
+            --brand:#0d5c8a; --brand-dark:#073e5e;
+            --accent:#e8562a; --line:#e2e8f0; --ok:#1f8a4c;
+        }
+        *{box-sizing:border-box}
+        body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+            background:var(--bg);color:var(--ink);line-height:1.55}
+        a{color:var(--brand);text-decoration:none}
+        a:hover{text-decoration:underline}
+        header.site{background:var(--brand);color:#fff}
+        .bar{max-width:1080px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:18px}
+        .bar .brand{font-weight:700;font-size:1.15rem;color:#fff}
+        .bar nav{margin-left:auto;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+        .bar nav a{color:#dcecf6;font-size:.95rem}
+        .bar nav a:hover{color:#fff;text-decoration:none}
+        .wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+        .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:20px}
+        h1{font-size:1.7rem;margin:.2em 0 .5em}
+        h2{font-size:1.25rem;margin:.2em 0 .6em}
+        .muted{color:var(--muted)}
+        .btn{display:inline-block;background:var(--brand);color:#fff;padding:9px 16px;border-radius:8px;
+            border:0;font-size:.95rem;cursor:pointer;font-weight:600}
+        .btn:hover{background:var(--brand-dark);text-decoration:none}
+        .btn.secondary{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+        .btn.accent{background:var(--accent)}
+        input,select,textarea{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:8px;width:100%;background:#fff}
+        label{font-size:.85rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+        .grid{display:grid;gap:14px}
+        .filter-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px}
+        .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center}
+        .stat .num{font-size:1.8rem;font-weight:700;color:var(--brand)}
+        .stat .lbl{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+        table{width:100%;border-collapse:collapse}
+        th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);font-size:.93rem;vertical-align:top}
+        th{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.03em}
+        tr:hover td{background:#f9fbfd}
+        .pill{display:inline-block;padding:2px 9px;border-radius:999px;background:#eef3f7;color:var(--brand);font-size:.78rem;font-weight:600}
+        .messages{list-style:none;padding:0;margin:0 0 18px}
+        .messages li{padding:11px 15px;border-radius:8px;margin-bottom:8px;font-size:.92rem}
+        .messages li.success{background:#e6f6ec;color:var(--ok)}
+        .messages li.error,.messages li.warning{background:#fdece8;color:#b03a1a}
+        .messages li.info{background:#e9f2f9;color:var(--brand)}
+        .pagination{display:flex;gap:8px;align-items:center;margin-top:18px;flex-wrap:wrap}
+        footer.site{max-width:1080px;margin:0 auto;padding:24px 20px;color:var(--muted);font-size:.85rem}
+        .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+        .helptext{font-size:.78rem;color:var(--muted)}
+        ul.errorlist{margin:4px 0;padding-left:18px;color:#b03a1a;font-size:.82rem}
+    </style>
+</head>
+<body>
+    <header class="site">
+        <div class="bar">
+            <a class="brand" href="{% url 'directory:home' %}">🎓 IOE Alumni Tracker</a>
+            <nav>
+                <a href="{% url 'directory:home' %}">Home</a>
+                <a href="{% url 'directory:alumni-list' %}">Search Alumni</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'directory:my-profile' %}">My Profile</a>
+                    <a href="{% url 'account_logout' %}">Sign out</a>
+                {% else %}
+                    <a href="{% url 'account_login' %}">Sign in</a>
+                    <a href="{% url 'account_signup' %}">Sign up</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="wrap">
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site">
+        Alumni Tracking System · Department of Electronics &amp; Computer Engineering, IOE Pulchowk Campus.
+    </footer>
+</body>
+</html>

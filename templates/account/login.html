@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load allauth account socialaccount %}
+{% block title %}Sign in{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:460px;margin:24px auto">
+    <h1>Sign in</h1>
+    <p class="muted">Access your alumnus profile to keep your details up to date.</p>
+
+    <form method="post" action="{% url 'account_login' %}">
+        {% csrf_token %}
+        {% for field in form.visible_fields %}
+            <div style="margin-bottom:14px">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}<ul class="errorlist"><li>{{ error }}</li></ul>{% endfor %}
+            </div>
+        {% endfor %}
+        {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        {% if redirect_field_value %}
+            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+        {% endif %}
+        <button class="btn" type="submit" style="width:100%">Sign in</button>
+    </form>
+
+    <p style="margin-top:14px"><a href="{% url 'account_reset_password' %}">Forgot your password?</a></p>
+
+    {% get_providers as socialaccount_providers %}
+    {% if socialaccount_providers %}
+        <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+        <p class="muted" style="text-align:center">or</p>
+        <a class="btn secondary" style="width:100%;text-align:center"
+           href="{% provider_login_url 'google' %}">Continue with Google</a>
+    {% endif %}
+
+    <p class="muted" style="margin-top:18px;text-align:center">
+        New here? <a href="{% url 'account_signup' %}">Create an account</a>
+    </p>
+</div>
+{% endblock %}

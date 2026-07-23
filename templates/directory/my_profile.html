@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}My profile{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>My profile</h1>
+    {% if alumnus %}
+        <p class="muted">Signed in as {{ user.email }} · linked to your alumnus record.</p>
+        <table>
+            <tr><th>Name</th><td>{{ alumnus.full_name }}</td></tr>
+            <tr><th>Batch</th><td>{{ alumnus.batch|default:"—" }}</td></tr>
+            <tr><th>Field</th><td>{{ alumnus.get_field_of_study_display|default:"—" }}</td></tr>
+            <tr><th>Current city</th><td>{{ alumnus.current_city|default:"—" }}</td></tr>
+            <tr><th>Country</th><td>{% if alumnus.current_country %}{{ alumnus.current_country.name }}{% else %}—{% endif %}</td></tr>
+            <tr><th>Works at</th><td>{{ alumnus.employer_organization|default:"—" }}{% if alumnus.job_title %} — {{ alumnus.job_title }}{% endif %}</td></tr>
+        </table>
+        <div class="actions">
+            <a class="btn" href="{% url 'accounts:edit-profile' %}">Edit my details</a>
+            <a class="btn secondary" href="{{ alumnus.get_absolute_url }}">View public page</a>
+        </div>
+    {% else %}
+        <p class="muted">Signed in as {{ user.email }}.</p>
+        <p>Your account isn't linked to an alumnus record yet. Link it to manage your details
+           and appear as a verified alumnus in the directory.</p>
+        <div class="actions">
+            <a class="btn" href="{% url 'accounts:claim-record' %}">Link my alumnus record</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

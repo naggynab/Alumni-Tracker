@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Alumni Tracking System</h1>
+    <p class="muted" style="max-width:640px">
+        A campus-wide directory for the alumni of IOE Pulchowk Campus. Search graduates
+        by name, batch, field of study, current city, employer, or country — and if you're
+        an alumnus, sign in to keep your own record up to date.
+    </p>
+    <div class="actions">
+        <a class="btn" href="{% url 'directory:alumni-list' %}">Search the directory</a>
+        {% if not user.is_authenticated %}
+            <a class="btn secondary" href="{% url 'account_signup' %}">I'm an alumnus — sign up</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="stats">
+    <div class="stat"><div class="num">{{ stats.total }}</div><div class="lbl">Alumni</div></div>
+    <div class="stat"><div class="num">{{ stats.batches }}</div><div class="lbl">Batches</div></div>
+    <div class="stat"><div class="num">{{ stats.countries }}</div><div class="lbl">Countries</div></div>
+    <div class="stat"><div class="num">{{ stats.employers }}</div><div class="lbl">Employers</div></div>
+</div>
+
+{% if top_employers %}
+<div class="card" style="margin-top:20px">
+    <h2>Top employers</h2>
+    <table>
+        <thead><tr><th>Organization</th><th>Alumni</th></tr></thead>
+        <tbody>
+        {% for row in top_employers %}
+            <tr>
+                <td>{{ row.employer_organization }}</td>
+                <td><span class="pill">{{ row.n }}</span></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

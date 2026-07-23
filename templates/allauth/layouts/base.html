@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+
+{# Render allauth's auth pages (email verification, password reset, etc.)
+   inside the site chrome. Child templates fill the `content` block, which
+   flows straight into base.html. #}
+{% block title %}{% block head_title %}{% endblock head_title %}{% endblock title %}

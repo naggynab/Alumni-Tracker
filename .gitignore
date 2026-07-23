@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/media/
+/staticfiles/
+
+# Environment
+.env
+
+# Full data sources are large and not committed (see data/README.md).
+data/*.csv
+data/*.json
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
