@@ -103,7 +103,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f"JSON not found at {p}; skipping."))
             return 0
 
-        objects = json.loads(p.read_text())
+        objects = json.loads(p.read_text(encoding="utf-8"))
         students = {o["pk"]: o["fields"] for o in objects if o["model"] == "records.student"}
 
         # Group addresses and further-academic records by student pk.
