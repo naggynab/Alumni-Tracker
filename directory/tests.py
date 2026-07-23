@@ -20,6 +20,17 @@ class NormalisationTests(TestCase):
         self.assertEqual(normalize_gender(""), "")
 
 
+class BatchNormalisationTests(TestCase):
+    def test_batch_normalisation(self):
+        from directory.management.commands.import_alumni import normalize_batch
+        # DOECE dump stores '2075'; roster stores '075' — both must land on '075'.
+        self.assertEqual(normalize_batch("2075"), "075")
+        self.assertEqual(normalize_batch(" 2078 "), "078")
+        self.assertEqual(normalize_batch("078"), "078")
+        self.assertEqual(normalize_batch(""), "")
+        self.assertEqual(normalize_batch(None), "")
+
+
 class FilterTests(TestCase):
     @classmethod
     def setUpTestData(cls):

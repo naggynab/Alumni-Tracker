@@ -65,6 +65,20 @@ def country_code_from_name(name):
     return _COUNTRY_NAME_TO_CODE.get((name or "").strip().lower(), "")
 
 
+def normalize_batch(value):
+    """Normalise a batch to the 3-digit campus form (e.g. '2075' -> '075').
+
+    The DOECE JSON dump stores the full B.S. year ('2075'), while the campus
+    roster uses the short form ('075'). Without this, filtering by batch would
+    silently miss one source. Matches the reference app, which displayed
+    ``be_batch_bs[1:]``.
+    """
+    batch = str(value or "").strip()
+    if len(batch) == 4 and batch.startswith("20"):
+        return batch[1:]
+    return batch
+
+
 class Command(BaseCommand):
     help = "Import alumni records from the CSV roster and the DOECE JSON dump."
 
@@ -147,7 +161,7 @@ class Command(BaseCommand):
                     date_of_birth_bs=(s.get("dob_bs") or "").strip(),
                     field_of_study=field,
                     department_raw="Electronics & Computer Engineering (DOECE)",
-                    batch=str(batch).strip(),
+                    batch=normalize_batch(batch),
                     class_roll_no=str(roll).strip(),
                     current_city=current_city.strip() if current_city else "",
                     current_country=current_country or "",
@@ -194,7 +208,7 @@ class Command(BaseCommand):
                     date_of_birth_bs=(row.get("dobBs") or "").strip(),
                     field_of_study=field,
                     department_raw=(row.get("facultyName") or "").strip(),
-                    batch=(row.get("batch") or "").strip(),
+                    batch=normalize_batch(row.get("batch")),
                     class_roll_no=(row.get("classRollNo") or "").strip(),
                     # The roster records home addresses, so treat them as
                     # permanent; current location is left for alumni to fill in.
