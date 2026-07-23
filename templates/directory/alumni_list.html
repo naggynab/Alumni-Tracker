@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Search alumni{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h1>Search alumni</h1>
+    <h1><i class="fas fa-search" style="color:var(--brand)"></i> Search Alumni</h1>
     <form method="get">
         <div class="grid filter-grid">
             {% for field in filter.form %}
@@ -14,36 +15,40 @@
             {% endfor %}
         </div>
         <div class="actions">
-            <button class="btn" type="submit">Search</button>
+            <button class="btn" type="submit"><i class="fas fa-search"></i> Search</button>
             <a class="btn secondary" href="{% url 'directory:alumni-list' %}">Reset</a>
         </div>
     </form>
 </div>
 
 <div class="card">
-    <p class="muted">
-        {{ total_results }} result{{ total_results|pluralize }}
+    <p class="muted" style="margin-top:0">
+        <b>{{ total_results }}</b> result{{ total_results|pluralize }}
         {% if has_query %}for your search{% endif %}.
     </p>
 
     {% if page_obj.object_list %}
-    <table>
-        <thead>
-            <tr><th>Name</th><th>Batch</th><th>Field</th><th>Current city</th><th>Country</th><th>Works at</th></tr>
-        </thead>
-        <tbody>
+    <div class="yb-grid">
         {% for a in page_obj.object_list %}
-            <tr>
-                <td><a href="{{ a.get_absolute_url }}">{{ a.full_name }}</a></td>
-                <td>{{ a.batch|default:"—" }}</td>
-                <td>{{ a.get_field_of_study_display|default:"—" }}</td>
-                <td>{{ a.current_city|default:"—" }}</td>
-                <td>{% if a.current_country %}{{ a.current_country.name }}{% else %}—{% endif %}</td>
-                <td>{{ a.employer_organization|default:"—" }}</td>
-            </tr>
+        <article class="yb-card">
+            <img src="{% static 'pictures/default_user.png' %}" alt="">
+            <div style="min-width:0">
+                <div class="yb-name"><a href="{{ a.get_absolute_url }}">{{ a.full_name }}</a></div>
+                <div class="yb-tags">
+                    {% if a.field_of_study %}<span class="pill">{{ a.get_field_of_study_display }}</span>{% endif %}
+                    {% if a.batch %}<span class="pill">Batch {{ a.batch }}</span>{% endif %}
+                </div>
+                {% if a.employer_organization %}
+                    <div class="yb-meta"><i class="fas fa-briefcase"></i> {{ a.employer_organization }}{% if a.job_title %} — {{ a.job_title }}{% endif %}</div>
+                {% endif %}
+                {% if a.current_city or a.current_country %}
+                    <div class="yb-meta"><i class="fas fa-map-marker-alt"></i>
+                        {{ a.current_city }}{% if a.current_city and a.current_country %}, {% endif %}{% if a.current_country %}{{ a.current_country.name }}{% endif %}</div>
+                {% endif %}
+            </div>
+        </article>
         {% endfor %}
-        </tbody>
-    </table>
+    </div>
 
     {% if page_obj.paginator.num_pages > 1 %}
     <div class="pagination">
