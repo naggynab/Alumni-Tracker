@@ -67,6 +67,26 @@ Open http://127.0.0.1:8000/. In development, verification/reset emails print to
 the console, and the database defaults to a local SQLite file (set `DATABASE_URL`
 for Postgres).
 
+### Password-reset email delivery
+
+To send reset links to real inboxes, configure SMTP in the local `.env` file.
+For a Gmail or Google Workspace sender, create a Google **App Password** (do
+not use the normal account password), then set:
+
+```env
+EMAIL_ENABLED=True
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_TIMEOUT=10
+EMAIL_HOST_USER=your-sender@example.com
+EMAIL_HOST_PASSWORD=your-16-character-google-app-password  # spaces are OK
+DEFAULT_FROM_EMAIL=your-sender@example.com
+```
+
+Restart the server after saving the file. If the campus Google Workspace admin
+does not permit App Passwords, request the campus SMTP relay details instead.
+
 ### Google sign-in
 
 Create OAuth credentials in the Google Cloud Console and set `GOOGLE_CLIENT_ID`
