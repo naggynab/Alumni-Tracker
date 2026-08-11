@@ -3,8 +3,12 @@ import uuid
 from django import forms
 from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError
+from allauth.account import app_settings as allauth_settings
 from allauth.account.adapter import get_adapter
-from allauth.account.forms import LoginForm as AllauthLoginForm
+from allauth.account.forms import (
+    LoginForm as AllauthLoginForm,
+    ResetPasswordForm as AllauthResetPasswordForm,
+)
 
 from directory.choices import (
     FIELD_OF_STUDY_CHOICES,
@@ -242,6 +246,45 @@ class ClaimRecordForm(forms.Form):
 
         matches = list(qs[:2])
         return matches[0] if len(matches) == 1 else None
+
+
+class RollNumberPasswordResetForm(forms.Form):
+    """Password reset by roll number — sends the reset link to the recovery
+    email the alumnus provided during registration."""
+
+    roll_number = forms.CharField(
+        label="College roll number",
+        max_length=30,
+        widget=forms.TextInput(
+            attrs={"placeholder": "080BCT047", "autocomplete": "username"}
+        ),
+    )
+
+    def clean_roll_number(self):
+        roll = normalize_roll_number(self.cleaned_data["roll_number"])
+        self.users = []
+        try:
+            alumnus = Alumnus.objects.select_related("user_account").get(
+                class_roll_no__iexact=roll,
+                user_account__isnull=False,
+            )
+        except Alumnus.DoesNotExist:
+            if not allauth_settings.PREVENT_ENUMERATION:
+                raise forms.ValidationError(
+                    "No account found for this roll number."
+                )
+            return roll
+        user = alumnus.user_account
+        if user.is_active and user.email:
+            self.users = [user]
+        return roll
+
+    def save(self, request, **kwargs):
+        if self.users:
+            AllauthResetPasswordForm._send_password_reset_mail(
+                self, request, self.users[0].email, self.users
+            )
+        return self.cleaned_data["roll_number"]
 
 
 class AlumnusProfileForm(forms.ModelForm):

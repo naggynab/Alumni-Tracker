@@ -78,6 +78,7 @@ environment variables. When `RESEND_API_KEY` is set, the application uses the
 Resend API automatically.
 
 ```env
+EMAIL_PROVIDER=resend
 RESEND_API_KEY=re_your_api_key
 DEFAULT_FROM_EMAIL=Alumni Tracker <noreply@your-verified-domain.example>
 ```
@@ -88,6 +89,7 @@ For a Gmail or Google Workspace sender, create a Google **App Password** (do
 not use the normal account password), then set:
 
 ```env
+EMAIL_PROVIDER=smtp
 EMAIL_ENABLED=True
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
