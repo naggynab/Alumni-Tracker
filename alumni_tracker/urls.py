@@ -3,9 +3,16 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from accounts.views import RollNumberPasswordResetView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
+    path(
+        "accounts/password/reset/",
+        RollNumberPasswordResetView.as_view(),
+        name="account_reset_password",
+    ),
     path("accounts/", include("allauth.urls")),
     path("", include("directory.urls")),
 ]

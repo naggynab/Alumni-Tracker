@@ -2,10 +2,27 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import FormView
 
 from directory.models import Alumnus
 
-from .forms import AlumnusProfileForm, ClaimRecordForm, RegistrationForm
+from .forms import (
+    AlumnusProfileForm,
+    ClaimRecordForm,
+    RegistrationForm,
+    RollNumberPasswordResetForm,
+)
+
+
+class RollNumberPasswordResetView(FormView):
+    template_name = "account/password_reset.html"
+    form_class = RollNumberPasswordResetForm
+    success_url = reverse_lazy("account_reset_password_done")
+
+    def form_valid(self, form):
+        form.save(self.request)
+        return super().form_valid(form)
 
 
 def register(request):

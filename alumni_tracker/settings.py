@@ -149,7 +149,10 @@ ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_FORMS = {"login": "accounts.forms.RollNumberLoginForm"}
+ACCOUNT_FORMS = {
+    "login": "accounts.forms.RollNumberLoginForm",
+    "reset_password": "accounts.forms.RollNumberPasswordResetForm",
+}
 ACCOUNT_EMAIL_VERIFICATION = os.environ.get("ACCOUNT_EMAIL_VERIFICATION", "optional")
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_SESSION_REMEMBER = True
