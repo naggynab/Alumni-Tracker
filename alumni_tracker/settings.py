@@ -169,8 +169,15 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
-# Email backend: console in development, SMTP in production.
-if env_bool("EMAIL_ENABLED", False):
+# Email delivery: Resend API when configured, SMTP when explicitly enabled,
+# and console output for local development otherwise.
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+if RESEND_API_KEY:
+    EMAIL_BACKEND = "alumni_tracker.email_backend.ResendEmailBackend"
+    DEFAULT_FROM_EMAIL = os.environ.get(
+        "DEFAULT_FROM_EMAIL", "onboarding@resend.dev"
+    ) or "onboarding@resend.dev"
+elif env_bool("EMAIL_ENABLED", False):
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
     EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))

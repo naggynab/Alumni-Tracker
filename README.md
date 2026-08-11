@@ -70,6 +70,20 @@ for Postgres).
 ### Password-reset email delivery
 
 To send reset links to real inboxes, configure SMTP in the local `.env` file.
+
+#### Resend API (recommended for Render)
+
+Create a Resend API key and verify your sending domain, then set these Render
+environment variables. When `RESEND_API_KEY` is set, the application uses the
+Resend API automatically.
+
+```env
+RESEND_API_KEY=re_your_api_key
+DEFAULT_FROM_EMAIL=Alumni Tracker <noreply@your-verified-domain.example>
+```
+
+#### Gmail or Google Workspace SMTP
+
 For a Gmail or Google Workspace sender, create a Google **App Password** (do
 not use the normal account password), then set:
 
