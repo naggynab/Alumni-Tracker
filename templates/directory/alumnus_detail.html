@@ -1,29 +1,37 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ alumnus.full_name }}{% endblock %}
 
 {% block content %}
-<div class="card">
-    <p class="muted"><a href="{% url 'directory:alumni-list' %}">← Back to search</a></p>
-    <h1>{{ alumnus.full_name }}</h1>
-    <p>
-        {% if alumnus.field_of_study %}<span class="pill">{{ alumnus.get_field_of_study_display }}</span>{% endif %}
-        {% if alumnus.batch %}<span class="pill">Batch {{ alumnus.batch }}</span>{% endif %}
-        {% if alumnus.is_claimed %}<span class="pill">✓ Verified alumnus</span>{% endif %}
-    </p>
+<div class="section" style="padding-top:36px">
+<div class="panel detail-card" style="margin:0 auto">
+    <p style="margin-top:0"><a href="{% url 'directory:alumni-list' %}">&larr; Back to yearbook</a></p>
 
-    <table>
-        {% if alumnus.class_roll_no %}<tr><th>Roll no.</th><td>{{ alumnus.class_roll_no }}</td></tr>{% endif %}
-        {% if alumnus.department_raw %}<tr><th>Department</th><td>{{ alumnus.department_raw }}</td></tr>{% endif %}
-        {% if alumnus.employer_organization %}<tr><th>Works at</th><td>{{ alumnus.employer_organization }}{% if alumnus.job_title %} — {{ alumnus.job_title }}{% endif %}</td></tr>{% endif %}
-        {% if alumnus.current_city or alumnus.current_country %}
-            <tr><th>Currently in</th><td>{{ alumnus.current_city }}{% if alumnus.current_city and alumnus.current_country %}, {% endif %}{% if alumnus.current_country %}{{ alumnus.current_country.name }}{% endif %}</td></tr>
-        {% endif %}
-        {% if alumnus.permanent_district or alumnus.permanent_country %}
-            <tr><th>Home</th><td>{{ alumnus.permanent_district }}{% if alumnus.permanent_district and alumnus.permanent_country %}, {% endif %}{% if alumnus.permanent_country %}{{ alumnus.permanent_country.name }}{% endif %}</td></tr>
-        {% endif %}
-        {% if alumnus.further_study_institution %}<tr><th>Further study</th><td>{{ alumnus.further_study_institution }}{% if alumnus.further_study_country %} ({{ alumnus.further_study_country.name }}){% endif %}</td></tr>{% endif %}
-        {% if alumnus.linkedin_url %}<tr><th>LinkedIn</th><td><a href="{{ alumnus.linkedin_url }}" rel="noopener" target="_blank">{{ alumnus.linkedin_url }}</a></td></tr>{% endif %}
-        {% if alumnus.website %}<tr><th>Website</th><td><a href="{{ alumnus.website }}" rel="noopener" target="_blank">{{ alumnus.website }}</a></td></tr>{% endif %}
-    </table>
+    <div style="display:flex;gap:20px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+        <img src="{% static 'pictures/default_user.png' %}" alt=""
+             style="width:88px;height:88px;border-radius:16px;object-fit:cover;background:#0d1424">
+        <div>
+            <h1 style="font-size:1.7rem">{{ alumnus.full_name }}</h1>
+            <div class="result-tags" style="margin-top:6px">
+                {% if alumnus.field_of_study %}<span class="tag">{{ alumnus.get_field_of_study_display }}</span>{% endif %}
+                {% if alumnus.batch %}<span class="tag">Batch {{ alumnus.batch }}</span>{% endif %}
+                {% if alumnus.is_claimed %}<span class="tag">✓ Verified alumnus</span>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="info-block">
+        <div class="info-cols c3">
+            {% if alumnus.class_roll_no %}<div class="info-item"><div class="k">Roll Number</div><div class="v">{{ alumnus.class_roll_no }}</div></div>{% endif %}
+            {% if alumnus.department_raw %}<div class="info-item"><div class="k">Department</div><div class="v">{{ alumnus.department_raw }}</div></div>{% endif %}
+            {% if alumnus.employer_organization %}<div class="info-item"><div class="k">Works at</div><div class="v">{{ alumnus.employer_organization }}{% if alumnus.job_title %} — {{ alumnus.job_title }}{% endif %}</div></div>{% endif %}
+            {% if alumnus.current_city or alumnus.current_country %}<div class="info-item"><div class="k">Currently in</div><div class="v">{{ alumnus.current_city }}{% if alumnus.current_city and alumnus.current_country %}, {% endif %}{% if alumnus.current_country %}{{ alumnus.current_country.name }}{% endif %}</div></div>{% endif %}
+            {% if alumnus.permanent_district or alumnus.permanent_country %}<div class="info-item"><div class="k">Home</div><div class="v">{{ alumnus.permanent_district }}{% if alumnus.permanent_district and alumnus.permanent_country %}, {% endif %}{% if alumnus.permanent_country %}{{ alumnus.permanent_country.name }}{% endif %}</div></div>{% endif %}
+            {% if alumnus.further_study_institution %}<div class="info-item"><div class="k">Further study</div><div class="v">{{ alumnus.further_study_institution }}{% if alumnus.further_study_degree %} — {{ alumnus.further_study_degree }}{% endif %}{% if alumnus.further_study_country %} ({{ alumnus.further_study_country.name }}){% endif %}</div></div>{% endif %}
+            {% if alumnus.linkedin_url %}<div class="info-item"><div class="k">LinkedIn</div><div class="v"><a href="{{ alumnus.linkedin_url }}" rel="noopener" target="_blank">Profile</a></div></div>{% endif %}
+            {% if alumnus.website %}<div class="info-item"><div class="k">Website</div><div class="v"><a href="{{ alumnus.website }}" rel="noopener" target="_blank">Link</a></div></div>{% endif %}
+        </div>
+    </div>
+</div>
 </div>
 {% endblock %}

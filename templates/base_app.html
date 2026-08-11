@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% endblock %} · Pulchowk Alumni Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="s-brand">
+            <b>DOECE</b>
+            <span>ALUMNI TRACKER</span>
+        </div>
+        <nav>
+            <a href="{% url 'directory:my-profile' %}" class="{% if nav_active == 'profile' %}active{% endif %}">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+                My Profile
+            </a>
+            <a href="{% url 'accounts:edit-profile' %}" class="{% if nav_active == 'edit' %}active{% endif %}">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                Edit Profile
+            </a>
+            <a href="{% url 'directory:alumni-list' %}" class="{% if nav_active == 'yearbook' %}active{% endif %}">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5h6a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2Z"/><path d="M22 5h-6a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22Z"/></svg>
+                View Yearbook
+            </a>
+        </nav>
+        <div class="s-spacer"></div>
+        <div class="s-user">
+            <img src="{% static 'pictures/default_user.png' %}" alt="">
+            <span>{% if app_alumnus %}{{ app_alumnus.full_name }}{% else %}{{ user.email }}{% endif %}</span>
+        </div>
+        <div class="s-logout">
+            <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}
+                <button type="submit">
+                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    Logout
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <main class="app-main">
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+            </ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</div>
+</body>
+</html>

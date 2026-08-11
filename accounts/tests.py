@@ -1,7 +1,11 @@
+from django.core import mail
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from allauth.account.forms import ResetPasswordForm, SetPasswordForm
+from allauth.account.models import EmailAddress
 
+from .forms import RegistrationForm, RollNumberLoginForm
 from directory.choices import FIELD_COMPUTER
 from directory.models import Alumnus
 
@@ -68,3 +72,117 @@ class ClaimFlowTests(TestCase):
         )
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "roll number or date of birth")
+
+
+class RollNumberLoginTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="roll-login-user",
+            email="roll-login@example.com",
+            password="ValidPass1!",
+        )
+        self.record = Alumnus.objects.create(
+            first_name="Bikash",
+            last_name="Shrestha",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            class_roll_no="080BCT047",
+            user_account=self.user,
+        )
+
+    def test_login_accepts_roll_number_case_insensitively(self):
+        request = RequestFactory().post(
+            reverse("account_login"),
+            {"login": "080bct047", "password": "ValidPass1!"},
+        )
+        form = RollNumberLoginForm(
+            data={"login": "080bct047", "password": "ValidPass1!"},
+            request=request,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.user, self.user)
+
+    def test_wrong_password_is_rejected(self):
+        request = RequestFactory().post(
+            reverse("account_login"),
+            {"login": "080BCT047", "password": "WrongPass1!"},
+        )
+        form = RollNumberLoginForm(
+            data={"login": "080BCT047", "password": "WrongPass1!"},
+            request=request,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("Roll number and/or password is incorrect.", form.non_field_errors())
+
+
+class RegistrationSecurityTests(TestCase):
+    def registration_data(self, password):
+        return {
+            "first_name": "Nabina",
+            "last_name": "Karki",
+            "program": "BCT",
+            "batch": "2080",
+            "roll_number": "080BCT047",
+            "date_of_birth": "2058/01/01",
+            "email": "nabina@example.com",
+            "password": password,
+            "confirm_password": password,
+        }
+
+    def test_password_requires_all_character_types(self):
+        form = RegistrationForm(data=self.registration_data("Abcdefgh"))
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("password", form.errors)
+        self.assertIn("number", str(form.errors["password"]))
+        self.assertIn("special character", str(form.errors["password"]))
+
+    def test_registration_stores_recovery_email_and_roll_number(self):
+        form = RegistrationForm(data=self.registration_data("ValidPass1!"))
+
+        self.assertTrue(form.is_valid(), form.errors)
+        user = form.save()
+        record = Alumnus.objects.get(user_account=user)
+
+        self.assertEqual(user.email, "nabina@example.com")
+        self.assertEqual(record.class_roll_no, "080BCT047")
+        self.assertTrue(
+            EmailAddress.objects.filter(
+                user=user, email="nabina@example.com", primary=True, verified=True
+            ).exists()
+        )
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_recovery_email_can_request_password_reset(self):
+        form = RegistrationForm(data=self.registration_data("ValidPass1!"))
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+
+        reset_form = ResetPasswordForm(data={"email": "nabina@example.com"})
+
+        self.assertTrue(reset_form.is_valid(), reset_form.errors)
+        reset_form.save(
+            RequestFactory().post(
+                reverse("account_reset_password"),
+                {"email": "nabina@example.com"},
+            )
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Password Reset", mail.outbox[0].subject)
+
+    def test_password_policy_also_applies_to_reset_password(self):
+        form = RegistrationForm(data=self.registration_data("ValidPass1!"))
+        self.assertTrue(form.is_valid(), form.errors)
+        user = form.save()
+
+        reset_form = SetPasswordForm(
+            user=user,
+            data={"password1": "Abcdefgh", "password2": "Abcdefgh"},
+        )
+
+        self.assertFalse(reset_form.is_valid())
+        self.assertIn("number", str(reset_form.errors["password1"]))
+        self.assertIn("special character", str(reset_form.errors["password1"]))

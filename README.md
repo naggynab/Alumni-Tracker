@@ -12,7 +12,10 @@ authentication story and campus-wide (multi-faculty) search.
 ## Features
 
 **Secure alumni sign-in** (via [django-allauth](https://docs.allauth.org/))
-- Email + password with **mandatory email verification** and password reset
+- College roll number (for example `080BCT047` or `076BCE086`) + password
+- Passwords require at least 8 characters, including lowercase, uppercase,
+  number, and special-character requirements
+- A recovery email is saved during registration and supports password reset
 - **Google** sign-in (OAuth)
 - Brute-force throttling (5 failed logins / 5 min)
 - Alumni **claim** their pre-loaded record by confirming batch + field + last

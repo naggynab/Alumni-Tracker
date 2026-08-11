@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card wide">
+    <div class="auth-head">
+        <div class="auth-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 3 6 3s6-2 6-3v-5"/></svg>
+        </div>
+        <h1>Alumni Registration</h1>
+        <p>Create your alumni account to connect with fellow graduates and update your professional profile.</p>
+    </div>
+
+    <form method="post" action="{% url 'accounts:register' %}">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        <div class="form-grid">
+            <div>
+                <label>First Name <span class="req">*</span></label>
+                {{ form.first_name }}{{ form.first_name.errors }}
+            </div>
+            <div>
+                <label>Last Name <span class="req">*</span></label>
+                {{ form.last_name }}{{ form.last_name.errors }}
+            </div>
+            <div>
+                <label>Program <span class="req">*</span></label>
+                {{ form.program }}{{ form.program.errors }}
+            </div>
+            <div>
+                <label>Batch <span class="req">*</span></label>
+                {{ form.batch }}{{ form.batch.errors }}
+            </div>
+            <div>
+                <label>Roll Number <span class="req">*</span></label>
+                {{ form.roll_number }}{{ form.roll_number.errors }}
+            </div>
+            <div>
+                <label>Date of Birth <span class="req">*</span></label>
+                {{ form.date_of_birth }}{{ form.date_of_birth.errors }}
+            </div>
+            <div class="full">
+                <label>Recovery Email <span class="req">*</span></label>
+                {{ form.email }}{{ form.email.errors }}
+                <div class="helptext">Used to reset your password if you forget it.</div>
+            </div>
+            <div>
+                <label>Password <span class="req">*</span></label>
+                {{ form.password }}{{ form.password.errors }}
+                <div class="helptext">At least 8 characters with lowercase, uppercase, number, and special character.</div>
+            </div>
+            <div>
+                <label>Confirm Password <span class="req">*</span></label>
+                {{ form.confirm_password }}{{ form.confirm_password.errors }}
+            </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" type="submit" style="margin-top:26px">Complete Registration</button>
+    </form>
+
+    <p class="auth-foot">Already have an account? <a href="{% url 'account_login' %}">Login</a></p>
+  </div>
+</div>
+{% endblock %}

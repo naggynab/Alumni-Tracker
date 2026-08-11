@@ -46,7 +46,7 @@ class Alumnus(models.Model):
         db_index=True,
         help_text="Enrollment batch/year, e.g. '078'.",
     )
-    class_roll_no = models.CharField(max_length=30, blank=True)
+    class_roll_no = models.CharField(max_length=30, blank=True, db_index=True)
 
     # --- Current location (where they live now) -----------------------------
     current_city = models.CharField(max_length=100, blank=True, db_index=True)
@@ -68,6 +68,7 @@ class Alumnus(models.Model):
 
     # --- Further education --------------------------------------------------
     further_study_institution = models.CharField(max_length=150, blank=True)
+    further_study_degree = models.CharField(max_length=100, blank=True)
     further_study_country = CountryField(blank=True)
 
     # --- Contact / socials --------------------------------------------------

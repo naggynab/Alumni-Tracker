@@ -1,10 +1,29 @@
 from django.contrib import messages
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
 from directory.models import Alumnus
 
-from .forms import AlumnusProfileForm, ClaimRecordForm
+from .forms import AlumnusProfileForm, ClaimRecordForm, RegistrationForm
+
+
+def register(request):
+    """Alumni Registration — create an account and link an alumnus record."""
+    if request.user.is_authenticated:
+        return redirect("directory:my-profile")
+
+    if request.method == "POST":
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user, backend="accounts.authentication.RollNumberBackend")
+            messages.success(request, "Welcome! Your alumni account is ready.")
+            return redirect("directory:my-profile")
+    else:
+        form = RegistrationForm()
+
+    return render(request, "accounts/register.html", {"form": form, "nav_active": "register"})
 
 
 @login_required
@@ -54,4 +73,10 @@ def edit_profile(request):
     else:
         form = AlumnusProfileForm(instance=alumnus)
 
-    return render(request, "accounts/edit_profile.html", {"form": form, "alumnus": alumnus})
+    context = {
+        "form": form,
+        "alumnus": alumnus,
+        "app_alumnus": alumnus,
+        "nav_active": "edit",
+    }
+    return render(request, "accounts/edit_profile.html", context)

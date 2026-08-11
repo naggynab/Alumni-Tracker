@@ -50,6 +50,18 @@ _COUNTRY_NAME_TO_CODE = {
 }
 
 
+def _first_existing(*candidates):
+    """Return the first path that exists, else the first candidate.
+
+    Lets the documented data/ paths and the delivered data/data-sources/
+    names both work without extra flags.
+    """
+    for path in candidates:
+        if Path(path).exists():
+            return path
+    return candidates[0]
+
+
 def split_name(full_name):
     parts = (full_name or "").split()
     if not parts:
@@ -63,6 +75,22 @@ def split_name(full_name):
 
 def country_code_from_name(name):
     return _COUNTRY_NAME_TO_CODE.get((name or "").strip().lower(), "")
+
+
+def dedupe_key(field, batch, first, last):
+    """Identity key used to avoid importing the same person twice.
+
+    Roll-number formats differ between the two sources (the JSON dump stores a
+    bare serial like '501'; the CSV stores '070BCT501'), so we key on program +
+    batch + name instead. Used to skip CSV rows that a richer JSON record
+    already covers, while still importing everyone the JSON is missing.
+    """
+    return (
+        field,
+        str(batch or "").strip(),
+        (first or "").strip().lower(),
+        (last or "").strip().lower(),
+    )
 
 
 def normalize_batch(value):
@@ -83,11 +111,22 @@ class Command(BaseCommand):
     help = "Import alumni records from the CSV roster and the DOECE JSON dump."
 
     def add_arguments(self, parser):
-        # Point at the full data sources placed under data/ (not committed;
-        # see the README). For instant demo data use `loaddata demo` instead.
+        # Point at the full data sources placed under data/ (see the README).
+        # The delivered sources live under data/data-sources/ with their
+        # original names; the documented data/*.csv,*.json paths are also
+        # accepted. For instant demo data use `loaddata demo` instead.
         data_dir = Path(settings.BASE_DIR) / "data"
-        parser.add_argument("--csv", default=str(data_dir / "list_for_alumni.csv"))
-        parser.add_argument("--json", default=str(data_dir / "doece_dump.json"))
+        csv_default = _first_existing(
+            data_dir / "data-sources" / "list for Alumni.csv",
+            data_dir / "list_for_alumni.csv",
+            data_dir / "list for Alumni.csv",
+        )
+        json_default = _first_existing(
+            data_dir / "data-sources" / "data.json",
+            data_dir / "doece_dump.json",
+        )
+        parser.add_argument("--csv", default=str(csv_default))
+        parser.add_argument("--json", default=str(json_default))
         parser.add_argument(
             "--flush",
             action="store_true",
@@ -99,8 +138,8 @@ class Command(BaseCommand):
             deleted, _ = Alumnus.objects.filter(user_account__isnull=True).delete()
             self.stdout.write(self.style.WARNING(f"Flushed {deleted} unclaimed records."))
 
-        json_count = self._import_json(opts["json"])
-        csv_count = self._import_csv(opts["csv"])
+        json_count, seen_keys = self._import_json(opts["json"])
+        csv_count = self._import_csv(opts["csv"], seen_keys)
 
         total = Alumnus.objects.count()
         self.stdout.write(
@@ -115,7 +154,7 @@ class Command(BaseCommand):
         p = Path(path)
         if not p.exists():
             self.stdout.write(self.style.WARNING(f"JSON not found at {p}; skipping."))
-            return 0
+            return 0, set()
 
         objects = json.loads(p.read_text(encoding="utf-8"))
         students = {o["pk"]: o["fields"] for o in objects if o["model"] == "records.student"}
@@ -130,6 +169,7 @@ class Command(BaseCommand):
                 further.setdefault(o["fields"]["student"], []).append(o["fields"])
 
         created = 0
+        seen_keys = set()
         with transaction.atomic():
             for pk, s in students.items():
                 field = _BE_PROGRAM_FIELD.get(s.get("be_program") or "", "")
@@ -177,27 +217,38 @@ class Command(BaseCommand):
                     linkedin_url=self._clean_url(s.get("linked_in_id")),
                     website=self._clean_url(s.get("website")),
                 )
+                seen_keys.add(
+                    dedupe_key(field, normalize_batch(batch),
+                               s.get("first_name"), s.get("last_name"))
+                )
                 created += 1
-        return created
+        return created, seen_keys
 
     # -- CSV (breadth across all faculties) ---------------------------------
-    def _import_csv(self, path):
+    def _import_csv(self, path, seen_keys=None):
         p = Path(path)
         if not p.exists():
             self.stdout.write(self.style.WARNING(f"CSV not found at {p}; skipping."))
             return 0
 
+        seen_keys = seen_keys or set()
         created = 0
         with p.open(newline="", encoding="utf-8") as fh, transaction.atomic():
             for row in csv.DictReader(fh):
                 field = normalize_field_of_study(row.get("facultyName"))
-                # DOECE fields already come from the richer JSON source.
-                if field in {FIELD_COMPUTER, FIELD_ELECTRONICS}:
-                    continue
 
                 first, middle, last = split_name(row.get("fullName"))
                 if not first:
                     continue
+
+                # Skip only the specific computer/electronics people the richer
+                # JSON dump already covers; newer batches absent from the JSON
+                # (076-080) still come in from the roster.
+                batch = normalize_batch(row.get("batch"))
+                if field in {FIELD_COMPUTER, FIELD_ELECTRONICS}:
+                    if dedupe_key(field, batch, first, last) in seen_keys:
+                        continue
+
                 country = country_code_from_name(row.get("countryName"))
 
                 Alumnus.objects.create(
@@ -208,7 +259,7 @@ class Command(BaseCommand):
                     date_of_birth_bs=(row.get("dobBs") or "").strip(),
                     field_of_study=field,
                     department_raw=(row.get("facultyName") or "").strip(),
-                    batch=normalize_batch(row.get("batch")),
+                    batch=batch,
                     class_roll_no=(row.get("classRollNo") or "").strip(),
                     # The roster records home addresses, so treat them as
                     # permanent; current location is left for alumni to fill in.

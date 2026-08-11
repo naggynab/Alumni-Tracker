@@ -3,37 +3,36 @@
 {% block title %}Sign up{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width:460px;margin:24px auto">
-    <h1>Create your account</h1>
-    <p class="muted">Sign up with your email, verify it, then link your alumnus record.</p>
-
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-head">
+        <h1>Create your account</h1>
+        <p>Prefer the full alumni form? <a href="{% url 'accounts:register' %}">Register as Alumni</a>.</p>
+    </div>
     <form method="post" action="{% url 'account_signup' %}">
         {% csrf_token %}
+        {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
         {% for field in form.visible_fields %}
-            <div style="margin-bottom:14px">
+            <div class="field-mb">
                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                 {{ field }}
                 {% if field.help_text %}<div class="helptext">{{ field.help_text|safe }}</div>{% endif %}
-                {% for error in field.errors %}<ul class="errorlist"><li>{{ error }}</li></ul>{% endfor %}
+                {{ field.errors }}
             </div>
         {% endfor %}
-        {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
         {% if redirect_field_value %}
             <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
         {% endif %}
-        <button class="btn" type="submit" style="width:100%">Sign up</button>
+        <button class="btn btn-primary btn-block" type="submit">Sign up</button>
     </form>
 
     {% get_providers as socialaccount_providers %}
     {% if socialaccount_providers %}
-        <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
-        <p class="muted" style="text-align:center">or</p>
-        <a class="btn secondary" style="width:100%;text-align:center"
-           href="{% provider_login_url 'google' %}">Continue with Google</a>
+        <div class="divider-or">or</div>
+        <a class="btn btn-light btn-block" href="{% provider_login_url 'google' %}">Continue with Google</a>
     {% endif %}
 
-    <p class="muted" style="margin-top:18px;text-align:center">
-        Already have an account? <a href="{% url 'account_login' %}">Sign in</a>
-    </p>
+    <p class="auth-foot">Already have an account? <a href="{% url 'account_login' %}">Login</a></p>
+  </div>
 </div>
 {% endblock %}

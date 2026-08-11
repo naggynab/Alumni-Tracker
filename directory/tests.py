@@ -57,12 +57,29 @@ class FilterTests(TestCase):
         self.assertEqual(self._count({"field_of_study": FIELD_ELECTRICAL}), 1)
 
     def test_city_employer_country(self):
-        self.assertEqual(self._count({"current_city": "kathmandu"}), 1)
+        # City/country/university are dropdowns populated from the data, so
+        # they match the exact stored value; employer stays free-text (icontains).
+        self.assertEqual(self._count({"country": "NP", "current_city": "Kathmandu"}), 1)
         self.assertEqual(self._count({"employer": "telecom"}), 1)
         self.assertEqual(self._count({"country": "US"}), 1)
 
     def test_combined(self):
         self.assertEqual(self._count({"batch": "078", "field_of_study": FIELD_COMPUTER}), 1)
+
+    def test_city_requires_country_first(self):
+        alumni_filter = AlumnusFilter({}, queryset=Alumnus.objects.all())
+        city_field = alumni_filter.form.fields["current_city"]
+
+        self.assertEqual(list(city_field.choices), [("", "Select Country First")])
+        self.assertEqual(city_field.widget.attrs.get("disabled"), "disabled")
+
+    def test_city_choices_are_scoped_by_country(self):
+        alumni_filter = AlumnusFilter({"country": "NP"}, queryset=Alumnus.objects.all())
+        city_field = alumni_filter.form.fields["current_city"]
+        city_values = [value for value, _label in city_field.choices if value]
+
+        self.assertEqual(city_values, ["Kathmandu"])
+        self.assertNotIn("disabled", city_field.widget.attrs)
 
 
 class ViewTests(TestCase):

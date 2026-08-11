@@ -1,50 +1,41 @@
-{% extends "base.html" %}
+{% extends base_template %}
 {% load static %}
-{% block title %}Search alumni{% endblock %}
+{% block title %}View Yearbook{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1><i class="fas fa-search" style="color:var(--brand)"></i> Search Alumni</h1>
-    <form method="get">
-        <div class="grid filter-grid">
-            {% for field in filter.form %}
-                <div>
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                </div>
-            {% endfor %}
+<div style="max-width:1120px;margin:0 auto;{% if not user.is_authenticated %}padding:48px 20px;{% endif %}">
+    <div class="find-card">
+        <div class="fc-head">
+            <h3>Find Alumni</h3>
+            <p>Search alumni by name or use filters to narrow your results.</p>
         </div>
-        <div class="actions">
-            <button class="btn" type="submit"><i class="fas fa-search"></i> Search</button>
-            <a class="btn secondary" href="{% url 'directory:alumni-list' %}">Reset</a>
-        </div>
-    </form>
-</div>
+        {% include "directory/_find_form.html" %}
+    </div>
 
-<div class="card">
-    <p class="muted" style="margin-top:0">
-        <b>{{ total_results }}</b> result{{ total_results|pluralize }}
-        {% if has_query %}for your search{% endif %}.
-    </p>
+    {% if has_query %}
+    <p class="results-meta"><b>{{ total_results }}</b> result{{ total_results|pluralize }} for your search.</p>
 
     {% if page_obj.object_list %}
-    <div class="yb-grid">
+    <div class="result-grid">
         {% for a in page_obj.object_list %}
-        <article class="yb-card">
+        <article class="result-card">
             <img src="{% static 'pictures/default_user.png' %}" alt="">
             <div style="min-width:0">
-                <div class="yb-name"><a href="{{ a.get_absolute_url }}">{{ a.full_name }}</a></div>
-                <div class="yb-tags">
-                    {% if a.field_of_study %}<span class="pill">{{ a.get_field_of_study_display }}</span>{% endif %}
-                    {% if a.batch %}<span class="pill">Batch {{ a.batch }}</span>{% endif %}
+                <div class="rc-name"><a href="{{ a.get_absolute_url }}">{{ a.full_name }}</a></div>
+                <div class="result-tags">
+                    {% if a.field_of_study %}<span class="tag">{{ a.get_field_of_study_display }}</span>{% endif %}
+                    {% if a.batch %}<span class="tag">Batch {{ a.batch }}</span>{% endif %}
                 </div>
                 {% if a.employer_organization %}
-                    <div class="yb-meta"><i class="fas fa-briefcase"></i> {{ a.employer_organization }}{% if a.job_title %} — {{ a.job_title }}{% endif %}</div>
-                {% endif %}
+                <div class="rc-meta">
+                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    <span>{{ a.employer_organization }}{% if a.job_title %} — {{ a.job_title }}{% endif %}</span>
+                </div>{% endif %}
                 {% if a.current_city or a.current_country %}
-                    <div class="yb-meta"><i class="fas fa-map-marker-alt"></i>
-                        {{ a.current_city }}{% if a.current_city and a.current_country %}, {% endif %}{% if a.current_country %}{{ a.current_country.name }}{% endif %}</div>
-                {% endif %}
+                <div class="rc-meta">
+                    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                    <span>{{ a.current_city }}{% if a.current_city and a.current_country %}, {% endif %}{% if a.current_country %}{{ a.current_country.name }}{% endif %}</span>
+                </div>{% endif %}
             </div>
         </article>
         {% endfor %}
@@ -53,17 +44,18 @@
     {% if page_obj.paginator.num_pages > 1 %}
     <div class="pagination">
         {% if page_obj.has_previous %}
-            <a class="btn secondary" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">← Prev</a>
+            <a class="btn btn-light" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">&larr; Prev</a>
         {% endif %}
         <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-            <a class="btn secondary" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Next →</a>
+            <a class="btn btn-light" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Next &rarr;</a>
         {% endif %}
     </div>
     {% endif %}
 
     {% else %}
-        <p class="muted">No alumni matched your search. Try broadening the filters.</p>
+        <div class="empty">No alumni matched your search. Try broadening the filters.</div>
+    {% endif %}
     {% endif %}
 </div>
 {% endblock %}

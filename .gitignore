@@ -18,6 +18,7 @@ db.sqlite3-journal
 # Full data sources are large and not committed (see data/README.md).
 data/*.csv
 data/*.json
+data/data-sources/
 
 # OS / editor
 .DS_Store

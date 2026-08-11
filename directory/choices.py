@@ -32,6 +32,32 @@ FIELD_OF_STUDY_CHOICES = (
     (FIELD_OTHER, "Other / Interdisciplinary"),
 )
 
+# Degree programs offered (used on the registration form). Each maps to a
+# canonical field of study so a new alumnus is filed under the right program.
+PROGRAM_CHOICES = (
+    ("BCT", "BCT — Computer Engineering"),
+    ("BEX", "BEX — Electronics & Communication"),
+    ("BEI", "BEI — Electronics, Information & Communication"),
+    ("BEL", "BEL — Electrical Engineering"),
+    ("BCE", "BCE — Civil Engineering"),
+    ("BME", "BME — Mechanical Engineering"),
+    ("BAR", "BAR — Architecture"),
+    ("BAS", "BAS — Aerospace Engineering"),
+    ("BCH", "BCH — Chemical Engineering"),
+)
+
+PROGRAM_TO_FIELD = {
+    "BCT": FIELD_COMPUTER,
+    "BEX": FIELD_ELECTRONICS,
+    "BEI": FIELD_ELECTRONICS,
+    "BEL": FIELD_ELECTRICAL,
+    "BCE": FIELD_CIVIL,
+    "BME": FIELD_MECHANICAL,
+    "BAR": FIELD_ARCHITECTURE,
+    "BAS": FIELD_AEROSPACE,
+    "BCH": FIELD_CHEMICAL,
+}
+
 GENDER_CHOICES = (
     ("Male", "Male"),
     ("Female", "Female"),

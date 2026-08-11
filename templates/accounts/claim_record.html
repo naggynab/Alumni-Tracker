@@ -2,24 +2,26 @@
 {% block title %}Link my record{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width:560px;margin:0 auto">
-    <h1>Link your alumnus record</h1>
-    <p class="muted">
-        Confirm your identity to link this account to your pre-loaded record.
-        Provide your class roll number <em>or</em> date of birth along with the other details.
-    </p>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-head">
+        <h1>Link your alumnus record</h1>
+        <p>Confirm your identity to link this account to your pre-loaded record.
+           Provide your class roll number <em>or</em> date of birth along with the other details.</p>
+    </div>
     <form method="post">
         {% csrf_token %}
+        {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
         {% for field in form %}
-            <div style="margin-bottom:14px">
+            <div class="field-mb">
                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                 {{ field }}
                 {% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}
-                {% for error in field.errors %}<ul class="errorlist"><li>{{ error }}</li></ul>{% endfor %}
+                {{ field.errors }}
             </div>
         {% endfor %}
-        {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-        <button class="btn" type="submit">Link my record</button>
+        <button class="btn btn-primary btn-block" type="submit">Link my record</button>
     </form>
+  </div>
 </div>
 {% endblock %}

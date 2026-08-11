@@ -1,0 +1,120 @@
+{% comment %}Shared "Find Alumni" search form. Expects `filter`
+(AlumnusFilter).{% endcomment %}
+<form method="get" action="{% url 'directory:alumni-list' %}">
+  <div class="field-mb">
+    <label for="{{ filter.form.name.id_for_label }}">Search Alumni Name</label>
+    <div class="input-icon">
+      <svg
+        class="icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      {{ filter.form.name }}
+    </div>
+  </div>
+
+  <div class="find-divider"></div>
+
+  <div class="form-grid">
+    <div>
+      <label for="{{ filter.form.batch.id_for_label }}">Graduation Batch</label>
+      {{ filter.form.batch }}
+    </div>
+    <div>
+      <label for="{{ filter.form.field_of_study.id_for_label }}"
+        >Program / Department</label
+      >
+      {{ filter.form.field_of_study }}
+    </div>
+    <div>
+      <label for="{{ filter.form.country.id_for_label }}">Country</label>
+      {{ filter.form.country }}
+    </div>
+    <div>
+      <label for="{{ filter.form.current_city.id_for_label }}">City</label>
+      {{ filter.form.current_city }}
+    </div>
+    <div>
+      <label for="{{ filter.form.employer.id_for_label }}"
+        >Search by Organization</label
+      >
+      {{ filter.form.employer }}
+    </div>
+    <div>
+      <label for="{{ filter.form.university.id_for_label }}"
+        >Search by University</label
+      >
+      {{ filter.form.university }}
+    </div>
+  </div>
+
+  <div class="find-actions">
+    <button class="btn btn-primary" type="submit">Search</button>
+  </div>
+</form>
+
+{{ filter.city_choices_by_country|json_script:"country-city-map" }}
+<script>
+  (function () {
+    const countrySelect = document.getElementById(
+      "{{ filter.form.country.id_for_label }}",
+    );
+    const citySelect = document.getElementById(
+      "{{ filter.form.current_city.id_for_label }}",
+    );
+    const mapElement = document.getElementById("country-city-map");
+
+    if (!countrySelect || !citySelect || !mapElement) {
+      return;
+    }
+
+    let cityMap = {};
+    try {
+      cityMap = JSON.parse(mapElement.textContent) || {};
+    } catch (error) {
+      cityMap = {};
+    }
+
+    const selectedFromServer =
+      citySelect.dataset.selectedCity || citySelect.value || "";
+
+    function rebuildCityOptions(countryCode, preferredCity) {
+      const cities = cityMap[countryCode] || [];
+      const placeholder = countryCode ? "Select City" : "Select Country First";
+
+      citySelect.innerHTML = "";
+
+      const emptyOption = document.createElement("option");
+      emptyOption.value = "";
+      emptyOption.textContent = placeholder;
+      citySelect.appendChild(emptyOption);
+
+      cities.forEach(function (city) {
+        const option = document.createElement("option");
+        option.value = city;
+        option.textContent = city;
+        citySelect.appendChild(option);
+      });
+
+      if (preferredCity && cities.includes(preferredCity)) {
+        citySelect.value = preferredCity;
+      } else {
+        citySelect.value = "";
+      }
+
+      citySelect.disabled = !countryCode;
+    }
+
+    rebuildCityOptions(countrySelect.value, selectedFromServer);
+    countrySelect.addEventListener("change", function () {
+      rebuildCityOptions(countrySelect.value, "");
+    });
+  })();
+</script>

@@ -106,6 +106,7 @@ AUTH_PASSWORD_VALIDATORS = [
      "OPTIONS": {"min_length": 8}},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {"NAME": "accounts.validators.PasswordComplexityValidator"},
 ]
 
 
@@ -133,20 +134,23 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # --- Authentication (django-allauth) ----------------------------------------
 SITE_ID = 1
 AUTHENTICATION_BACKENDS = [
+    "accounts.authentication.RollNumberBackend",
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
-LOGIN_REDIRECT_URL = "/accounts/profile/"
+LOGIN_REDIRECT_URL = "/me/"
 LOGOUT_REDIRECT_URL = "/"
 LOGIN_URL = "/accounts/login/"
 
-# Secure email/password sign-in.
+# Roll number/password sign-in. The email address remains the account's recovery
+# email and is used by django-allauth's password-reset flow.
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_EMAIL_VERIFICATION = os.environ.get("ACCOUNT_EMAIL_VERIFICATION", "mandatory")
+ACCOUNT_FORMS = {"login": "accounts.forms.RollNumberLoginForm"}
+ACCOUNT_EMAIL_VERIFICATION = os.environ.get("ACCOUNT_EMAIL_VERIFICATION", "optional")
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_SESSION_REMEMBER = True
 # Throttle brute-force login attempts (the case study asked for this).

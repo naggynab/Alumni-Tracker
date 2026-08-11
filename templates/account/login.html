@@ -1,40 +1,65 @@
 {% extends "base.html" %}
 {% load allauth account socialaccount %}
-{% block title %}Sign in{% endblock %}
+{% block title %}Login{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width:460px;margin:24px auto">
-    <h1>Sign in</h1>
-    <p class="muted">Access your alumnus profile to keep your details up to date.</p>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-head">
+        <div class="auth-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 3 6 3s6-2 6-3v-5"/></svg>
+        </div>
+        <h1>Pulchowk Alumni Tracker</h1>
+        <p>Use your college roll number to login to your account.</p>
+    </div>
 
     <form method="post" action="{% url 'account_login' %}">
         {% csrf_token %}
-        {% for field in form.visible_fields %}
-            <div style="margin-bottom:14px">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% for error in field.errors %}<ul class="errorlist"><li>{{ error }}</li></ul>{% endfor %}
-            </div>
-        {% endfor %}
         {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+        <div class="field-mb">
+            <label for="{{ form.login.id_for_label }}">College Roll Number</label>
+            <div class="input-icon">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                {{ form.login }}
+            </div>
+            {{ form.login.errors }}
+        </div>
+
+        <div class="field-mb">
+            <label for="{{ form.password.id_for_label }}">Password</label>
+            <div class="input-icon">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                {{ form.password }}
+                <button type="button" class="toggle" aria-label="Show password"
+                        onclick="var i=this.parentNode.querySelector('input');i.type=i.type==='password'?'text':'password';">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
+            {{ form.password.errors }}
+        </div>
+
+        <div class="auth-row">
+            <label class="remember">{{ form.remember }} Remember me</label>
+            <a href="{% url 'account_reset_password' %}">Forgot Password?</a>
+        </div>
+
         {% if redirect_field_value %}
             <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
         {% endif %}
-        <button class="btn" type="submit" style="width:100%">Sign in</button>
+        <button class="btn btn-primary btn-block" type="submit">
+            Sign In
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        </button>
     </form>
-
-    <p style="margin-top:14px"><a href="{% url 'account_reset_password' %}">Forgot your password?</a></p>
 
     {% get_providers as socialaccount_providers %}
     {% if socialaccount_providers %}
-        <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
-        <p class="muted" style="text-align:center">or</p>
-        <a class="btn secondary" style="width:100%;text-align:center"
-           href="{% provider_login_url 'google' %}">Continue with Google</a>
+        <div class="divider-or">or</div>
+        <a class="btn btn-light btn-block" href="{% provider_login_url 'google' %}">Continue with Google</a>
     {% endif %}
 
-    <p class="muted" style="margin-top:18px;text-align:center">
-        New here? <a href="{% url 'account_signup' %}">Create an account</a>
-    </p>
+    <p class="auth-foot">Don't have an account? <a href="{% url 'accounts:register' %}">Register Now</a></p>
+  </div>
 </div>
 {% endblock %}

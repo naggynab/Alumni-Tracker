@@ -1,25 +1,90 @@
-{% extends "base.html" %}
-{% block title %}Edit my details{% endblock %}
+{% extends "base_app.html" %}
+{% load static %}
+{% block title %}Edit Profile{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width:640px;margin:0 auto">
-    <h1>Edit my details</h1>
-    <p class="muted">Keep your employment and location up to date so batch-mates can find you.</p>
-    <form method="post">
-        {% csrf_token %}
-        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
-            {% for field in form %}
-                <div style="margin-bottom:14px">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                    {% for error in field.errors %}<ul class="errorlist"><li>{{ error }}</li></ul>{% endfor %}
+<h1 class="page-title">Edit Profile</h1>
+<p class="page-sub">Update your information and manage how your profile appears to the alumni network.</p>
+
+<form method="post" action="{% url 'accounts:edit-profile' %}">
+    {% csrf_token %}
+
+    <!-- Personal Details -->
+    <div class="panel">
+        <div class="panel-title">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 7-6"/><path d="M16 11l2 2 4-4"/></svg>
+            Personal Details
+        </div>
+
+        <div style="display:flex;gap:22px;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap">
+            <img src="{% static 'pictures/default_user.png' %}" alt=""
+                 style="width:96px;height:96px;border-radius:16px;object-fit:cover;background:#0d1424">
+            <div>
+                <div style="font-weight:700">Update Profile Picture</div>
+                <div class="muted" style="font-size:.86rem;margin:4px 0 12px">
+                    Recommended: Square aspect ratio, minimum 400×400px. Professional attire suggested.</div>
+                <div style="display:flex;gap:14px;align-items:center">
+                    <span class="btn btn-light" style="cursor:not-allowed;opacity:.7">Upload New</span>
+                    <span style="color:var(--danger);font-weight:600;cursor:not-allowed;opacity:.7">Remove</span>
                 </div>
-            {% endfor %}
+            </div>
         </div>
-        <div class="actions">
-            <button class="btn" type="submit">Save changes</button>
-            <a class="btn secondary" href="{% url 'directory:my-profile' %}">Cancel</a>
+
+        <div class="form-grid">
+            <div><label>Gender</label>{{ form.gender }}</div>
+            <div><label>Date of Birth</label>{{ form.date_of_birth_bs }}</div>
+            <div><label>Phone Number</label>{{ form.contact_number }}</div>
+            <div><label>Address</label>{{ form.permanent_district }}</div>
+            <div><label>City</label>{{ form.current_city }}</div>
+            <div><label>Country</label>{{ form.current_country }}</div>
         </div>
-    </form>
-</div>
+    </div>
+
+    <!-- Institutional Identity (verified, read-only) -->
+    <div class="panel">
+        <div class="panel-title">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5Z"/><path d="m9 12 2 2 4-4"/></svg>
+            Institutional Identity
+            <span class="pill-verified">Verified Information</span>
+        </div>
+        <div class="form-grid">
+            <div><label>First Name</label><input type="text" value="{{ alumnus.first_name }}" disabled></div>
+            <div><label>Last Name</label><input type="text" value="{{ alumnus.last_name }}" disabled></div>
+            <div><label>Program</label><input type="text" value="{{ alumnus.get_field_of_study_display }}" disabled></div>
+            <div><label>Batch</label><input type="text" value="{{ alumnus.batch }}" disabled></div>
+            <div class="full"><label>Roll Number</label><input type="text" value="{{ alumnus.class_roll_no }}" disabled></div>
+        </div>
+    </div>
+
+    <!-- Professional Experience -->
+    <div class="panel">
+        <div class="panel-title">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Professional Experience
+        </div>
+        <div class="form-grid">
+            <div><label>Current Organization</label>{{ form.employer_organization }}</div>
+            <div><label>Designation</label>{{ form.job_title }}</div>
+            <div><label>Employment Status</label>{{ form.employment_status }}</div>
+        </div>
+    </div>
+
+    <!-- Advanced Studies -->
+    <div class="panel">
+        <div class="panel-title">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 3 6 3s6-2 6-3v-5"/></svg>
+            Advanced Studies
+        </div>
+        <div class="form-grid">
+            <div><label>University Name (Post-Grad)</label>{{ form.further_study_institution }}</div>
+            <div><label>Degree Obtained</label>{{ form.further_study_degree }}</div>
+            <div><label>Country of Study</label>{{ form.further_study_country }}</div>
+        </div>
+    </div>
+
+    <div class="app-actions">
+        <a class="btn btn-ghost" href="{% url 'directory:my-profile' %}">Cancel Changes</a>
+        <button class="btn btn-primary" type="submit">Save Profile Changes</button>
+    </div>
+</form>
 {% endblock %}

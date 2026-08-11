@@ -3,162 +3,68 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>{% block title %}{% endblock %} · DOECE Alumni Portal</title>
-
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css">
-    <!-- Bootstrap 4 -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Material Design for Bootstrap -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.5.16/css/mdb.min.css" rel="stylesheet">
-
-    <style>
-        :root{
-            --bg:#eef2f8; --card:#ffffff; --ink:#1b2733; --muted:#66788a;
-            --brand:#152a8c; --brand-dark:#0f0464; --accent:#ffa200;
-            --line:#dbe3ef; --ok:#1f8a4c; --yb:#cbdff3;
-            --nav:radial-gradient(circle at 14.2% 27.5%, rgba(15,4,100,1) 0%, rgba(128,161,238,1) 90%);
-        }
-        *{box-sizing:border-box}
-        body{margin:0;font-family:"Lato",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-            background:var(--bg);color:var(--ink);line-height:1.55}
-        a{color:var(--brand);text-decoration:none}
-        a:hover{text-decoration:underline}
-
-        /* ---- Navbar (DOECE portal look) ---- */
-        nav.site{background:var(--nav);position:sticky;top:0;z-index:1000;box-shadow:0 2px 10px rgba(15,4,100,.25)}
-        nav.site .bar{max-width:1120px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:16px}
-        nav.site .brand{display:flex;align-items:center;gap:12px;color:#fff}
-        nav.site .brand img{height:50px;width:50px;border-radius:50%;background:#fff;padding:2px;object-fit:contain}
-        nav.site .brand .txt{line-height:1.15}
-        nav.site .brand .txt b{font-size:1.02rem;display:block}
-        nav.site .brand .txt span{font-size:.82rem;opacity:.9}
-        nav.site .links{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-        nav.site .links a{color:#fff;padding:8px 12px;border-radius:6px;font-size:.96rem;transition:all .25s ease}
-        nav.site .links a:hover{color:aquamarine;text-decoration:none;background:rgba(255,255,255,.08)}
-        .navtoggle{display:none;margin-left:auto;background:none;border:1px solid rgba(255,255,255,.5);
-            color:#fff;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:1.1rem}
-
-        /* ---- Layout ---- */
-        .wrap{max-width:1120px;margin:0 auto;padding:24px 20px}
-        .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:20px;
-            box-shadow:0 1px 3px rgba(21,42,140,.05)}
-        h1{font-size:1.7rem;margin:.2em 0 .5em;color:var(--brand-dark)}
-        h2{font-size:1.25rem;margin:.2em 0 .6em;color:var(--brand-dark)}
-        .muted{color:var(--muted)}
-
-        /* ---- Buttons ---- */
-        .btn{display:inline-block;background:var(--brand);color:#fff;padding:9px 18px;border-radius:8px;
-            border:0;font-size:.95rem;cursor:pointer;font-weight:600;line-height:1.4;text-align:center}
-        .btn:hover{background:var(--brand-dark);text-decoration:none;color:#fff}
-        .btn.secondary{background:#fff;color:var(--brand);border:1px solid var(--brand)}
-        .btn.secondary:hover{background:#f2f6ff;color:var(--brand-dark)}
-        .btn.accent{background:var(--accent);color:#3a2a00}
-
-        /* ---- Forms ---- */
-        input,select,textarea,.input{font:inherit;padding:10px 12px;border:1px solid var(--line);
-            border-radius:8px;width:100%;background:#fff;color:var(--ink)}
-        input:focus,select:focus,textarea:focus,.input:focus{outline:none;border-color:var(--brand);
-            box-shadow:0 0 0 3px rgba(21,42,140,.12)}
-        label{font-size:.85rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
-        .helptext{font-size:.78rem;color:var(--muted)}
-        ul.errorlist{margin:4px 0;padding-left:18px;color:#b03a1a;font-size:.82rem}
-
-        /* ---- Grids / stats ---- */
-        .grid{display:grid;gap:14px}
-        .filter-grid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
-        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
-        .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;text-align:center;
-            box-shadow:0 1px 3px rgba(21,42,140,.05)}
-        .stat .num{font-size:1.9rem;font-weight:700;color:var(--brand)}
-        .stat .lbl{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-
-        /* ---- Tables ---- */
-        table{width:100%;border-collapse:collapse}
-        th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);font-size:.93rem;vertical-align:top}
-        th{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.03em}
-        tr:hover td{background:#f7faff}
-        .pill{display:inline-block;padding:2px 10px;border-radius:999px;background:#e7eefc;color:var(--brand);
-            font-size:.78rem;font-weight:600;margin-right:4px}
-
-        /* ---- Yearbook-style result cards ---- */
-        .yb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:8px}
-        .yb-card{background:var(--yb);border-radius:12px;padding:16px;display:flex;gap:14px;align-items:flex-start;
-            border:1px solid #b9d1ec;transition:transform .15s ease,box-shadow .15s ease}
-        .yb-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(21,42,140,.15)}
-        .yb-card img{height:64px;width:64px;border-radius:50%;object-fit:cover;background:#fff;flex-shrink:0;border:2px solid #fff}
-        .yb-card .yb-name{font-weight:700;color:var(--brand-dark);font-size:1.05rem}
-        .yb-card .yb-name a{color:var(--brand-dark)}
-        .yb-card .yb-meta{font-size:.86rem;color:#33507a;margin-top:4px}
-        .yb-card .yb-meta i{width:16px;text-align:center;opacity:.8}
-        .yb-card .yb-tags{margin-top:8px}
-
-        /* ---- Messages ---- */
-        .messages{list-style:none;padding:0;margin:0 0 18px}
-        .messages li{padding:11px 15px;border-radius:8px;margin-bottom:8px;font-size:.92rem}
-        .messages li.success{background:#e6f6ec;color:var(--ok)}
-        .messages li.error,.messages li.warning{background:#fdece8;color:#b03a1a}
-        .messages li.info{background:#e9f2f9;color:var(--brand)}
-
-        /* ---- Misc ---- */
-        .pagination{display:flex;gap:8px;align-items:center;margin-top:18px;flex-wrap:wrap}
-        .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-
-        /* ---- Footer ---- */
-        footer.site{background:var(--nav);color:#fff;text-align:center;padding:22px 20px;margin-top:30px}
-        footer.site b{color:#fff}
-        footer.site .small{opacity:.85;font-size:.82rem}
-
-        @media (max-width:760px){
-            nav.site .links{display:none;flex-basis:100%;flex-direction:column;align-items:stretch;gap:2px;margin-top:8px}
-            nav.site .links.open{display:flex}
-            nav.site .bar{flex-wrap:wrap}
-            .navtoggle{display:block}
-            nav.site .brand .txt b{font-size:.92rem}
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% endblock %} · Pulchowk Alumni Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    {% block head_extra %}{% endblock %}
 </head>
 <body>
-    <nav class="site">
+{% block chrome %}
+    <header class="pubnav">
         <div class="bar">
             <a class="brand" href="{% url 'directory:home' %}">
-                <img src="{% static 'pictures/tu-logos.png' %}" alt="TU logo">
-                <span class="txt">
-                    <b>Department of Electronics &amp; Computer Engineering</b>
-                    <span>Alumni Portal · IOE Pulchowk Campus</span>
+                <img class="brand-logo" src="{% static 'pictures/tu-logos.png' %}" alt="DOECE logo">
+                <span>
+                    <span class="t1">Department of Electronics and Computer Engineering</span>
+                    <span class="t2">Alumni Tracker</span>
                 </span>
             </a>
-            <button class="navtoggle" onclick="document.getElementById('navlinks').classList.toggle('open')" aria-label="Menu">&#9776;</button>
-            <div class="links" id="navlinks">
-                <a href="{% url 'directory:home' %}"><i class="fas fa-home"></i> Home</a>
-                <a href="{% url 'directory:alumni-list' %}"><i class="fas fa-search"></i> Search Alumni</a>
+            <button class="navtoggle" aria-label="Menu"
+                    onclick="document.getElementById('publinks').classList.toggle('open')">&#9776;</button>
+            <nav class="links" id="publinks">
+                <a class="nav {% if nav_active == 'home' %}active{% endif %}" href="{% url 'directory:home' %}">Home</a>
+                <a class="nav {% if nav_active == 'yearbook' %}active{% endif %}" href="{% url 'directory:alumni-list' %}">View Yearbook</a>
                 {% if user.is_authenticated %}
-                    <a href="{% url 'directory:my-profile' %}"><i class="fas fa-user"></i> My Profile</a>
-                    <a href="{% url 'account_logout' %}"><i class="fas fa-sign-out-alt"></i> Sign out</a>
+                    <a class="nav" href="{% url 'directory:my-profile' %}">My Profile</a>
+                    <form method="post" action="{% url 'account_logout' %}" style="display:inline;margin:0">{% csrf_token %}
+                        <button type="submit" class="btn btn-primary" style="padding:9px 20px">Logout</button>
+                    </form>
                 {% else %}
-                    <a href="{% url 'account_login' %}"><i class="fas fa-sign-in-alt"></i> Sign in</a>
-                    <a href="{% url 'account_signup' %}"><i class="fas fa-user-plus"></i> Sign up</a>
+                    <a class="nav {% if nav_active == 'login' %}active{% endif %}" href="{% url 'account_login' %}">Login</a>
+                    <a class="btn btn-primary" style="padding:10px 22px" href="{% url 'accounts:register' %}">Register</a>
                 {% endif %}
-            </div>
+            </nav>
         </div>
-    </nav>
+    </header>
+{% endblock %}
 
-    <main class="wrap">
+    <main class="pubmain">
         {% if messages %}
+        <div class="section" style="padding-top:24px;padding-bottom:0">
             <ul class="messages">
-                {% for message in messages %}
-                    <li class="{{ message.tags }}">{{ message }}</li>
-                {% endfor %}
+                {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
             </ul>
+        </div>
         {% endif %}
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="site">
-        <b>Department of Electronics &amp; Computer Engineering</b><br>
-        <span class="small">Alumni Tracking System · IOE Pulchowk Campus, Lalitpur, Nepal</span>
+{% block footer %}
+    <footer class="pubfooter">
+        <div class="inner">
+            <div class="brand">
+                <img class="brand-logo" src="{% static 'pictures/tu-logos.png' %}" alt="">
+                <div>
+                    <b>Department of Computer and Electronics Engineering</b>
+                    <span>Pulchowk Campus</span>
+                    <div class="rights">© 2026 All rights reserved.</div>
+                </div>
+            </div>
+            <div class="dev">Developed by: Kajal.Laxmi.Arya.Nabina<br>BCT 2080</div>
+        </div>
     </footer>
+{% endblock %}
 </body>
 </html>

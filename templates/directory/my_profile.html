@@ -1,30 +1,93 @@
-{% extends "base.html" %}
-{% block title %}My profile{% endblock %}
+{% extends "base_app.html" %}
+{% load static %}
+{% block title %}My Profile{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h1>My profile</h1>
-    {% if alumnus %}
-        <p class="muted">Signed in as {{ user.email }} · linked to your alumnus record.</p>
-        <table>
-            <tr><th>Name</th><td>{{ alumnus.full_name }}</td></tr>
-            <tr><th>Batch</th><td>{{ alumnus.batch|default:"—" }}</td></tr>
-            <tr><th>Field</th><td>{{ alumnus.get_field_of_study_display|default:"—" }}</td></tr>
-            <tr><th>Current city</th><td>{{ alumnus.current_city|default:"—" }}</td></tr>
-            <tr><th>Country</th><td>{% if alumnus.current_country %}{{ alumnus.current_country.name }}{% else %}—{% endif %}</td></tr>
-            <tr><th>Works at</th><td>{{ alumnus.employer_organization|default:"—" }}{% if alumnus.job_title %} — {{ alumnus.job_title }}{% endif %}</td></tr>
-        </table>
-        <div class="actions">
-            <a class="btn" href="{% url 'accounts:edit-profile' %}">Edit my details</a>
-            <a class="btn secondary" href="{{ alumnus.get_absolute_url }}">View public page</a>
+{% if alumnus %}
+<div class="panel" style="padding:0;overflow:hidden">
+  <div class="profile-grid">
+    <div class="profile-side">
+        <img class="profile-avatar" src="{% static 'pictures/default_user.png' %}" alt="">
+        <div class="profile-name">{{ alumnus.full_name }}</div>
+        <div class="profile-class">Class of {{ alumnus.batch|default:"—" }} Batch</div>
+    </div>
+    <div class="profile-body">
+        <div class="info-block">
+            <div class="info-head">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+                Personal Information
+            </div>
+            <div class="info-cols">
+                <div class="info-item"><div class="k">First Name</div><div class="v">{{ alumnus.first_name|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Last Name</div><div class="v">{{ alumnus.last_name|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Gender</div><div class="v">{{ alumnus.gender|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Date of Birth</div><div class="v">{{ alumnus.date_of_birth_bs|default:"—" }}</div></div>
+            </div>
         </div>
-    {% else %}
-        <p class="muted">Signed in as {{ user.email }}.</p>
-        <p>Your account isn't linked to an alumnus record yet. Link it to manage your details
-           and appear as a verified alumnus in the directory.</p>
-        <div class="actions">
-            <a class="btn" href="{% url 'accounts:claim-record' %}">Link my alumnus record</a>
+
+        <div class="info-block">
+            <div class="info-head">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                Contact Information
+            </div>
+            <div class="info-cols c3">
+                <div class="info-item"><div class="k">Email Address</div><div class="v">{{ alumnus.email|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Phone Number</div><div class="v">{{ alumnus.contact_number|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Current Address</div><div class="v">{{ alumnus.current_city|default:"—" }}{% if alumnus.current_country %}, {{ alumnus.current_country.name }}{% endif %}</div></div>
+            </div>
         </div>
-    {% endif %}
+
+        <div class="info-block">
+            <div class="info-head">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 3 6 3s6-2 6-3v-5"/></svg>
+                Academic Information
+            </div>
+            <div class="info-cols">
+                <div class="info-item"><div class="k">Program</div><div class="v">{{ alumnus.get_field_of_study_display|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Batch</div><div class="v">{{ alumnus.batch|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Roll Number</div><div class="v">{{ alumnus.class_roll_no|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Graduation Year</div><div class="v">{{ grad_year|default:"—" }}</div></div>
+            </div>
+        </div>
+
+        <div class="info-block">
+            <div class="info-head">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Professional Information
+            </div>
+            <div class="info-cols c3">
+                <div class="info-item"><div class="k">Current Organization</div><div class="v">{{ alumnus.employer_organization|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Designation / Job Title</div><div class="v">{{ alumnus.job_title|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Employment Status</div><div class="v">{{ alumnus.get_employment_status_display|default:"—" }}</div></div>
+            </div>
+        </div>
+
+        <div class="info-block">
+            <div class="info-head">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+                Higher Studies Information
+            </div>
+            <div class="info-cols c3">
+                <div class="info-item"><div class="k">University Name</div><div class="v">{{ alumnus.further_study_institution|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Degree</div><div class="v">{{ alumnus.further_study_degree|default:"—" }}</div></div>
+                <div class="info-item"><div class="k">Country of Study</div><div class="v">{% if alumnus.further_study_country %}{{ alumnus.further_study_country.name }}{% else %}—{% endif %}</div></div>
+            </div>
+        </div>
+    </div>
+  </div>
 </div>
+<div class="app-actions">
+    <a class="btn btn-primary" href="{% url 'accounts:edit-profile' %}">Edit Profile</a>
+</div>
+{% else %}
+<h1 class="page-title">My Profile</h1>
+<p class="page-sub">Signed in as {{ user.email }}.</p>
+<div class="panel">
+    <p>Your account isn't linked to an alumnus record yet. Link it to manage your details
+       and appear as a verified alumnus in the yearbook.</p>
+    <div class="app-actions" style="justify-content:flex-start;border:0;padding:0;margin-top:14px">
+        <a class="btn btn-primary" href="{% url 'accounts:claim-record' %}">Link my alumnus record</a>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
