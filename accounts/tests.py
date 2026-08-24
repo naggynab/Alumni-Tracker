@@ -45,6 +45,7 @@ class ClaimFlowTests(TestCase):
         self.assertRedirects(resp, reverse("directory:my-profile"))
         self.record.refresh_from_db()
         self.assertEqual(self.record.user_account, self.user)
+        self.assertTrue(self.record.is_public)
 
     def test_wrong_details_do_not_link(self):
         resp = self.client.post(
@@ -150,6 +151,7 @@ class RegistrationSecurityTests(TestCase):
 
         self.assertEqual(user.email, "nabina@example.com")
         self.assertEqual(record.class_roll_no, "080BCT047")
+        self.assertTrue(record.is_public)
         self.assertTrue(
             EmailAddress.objects.filter(
                 user=user, email="nabina@example.com", primary=True, verified=True
