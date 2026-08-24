@@ -37,8 +37,9 @@
                 {{ form.roll_number }}{{ form.roll_number.errors }}
             </div>
             <div>
-                <label>Date of Birth <span class="req">*</span></label>
+                <label>{{ form.date_of_birth.label }} <span class="req">*</span></label>
                 {{ form.date_of_birth }}{{ form.date_of_birth.errors }}
+                <div class="helptext">{{ form.date_of_birth.help_text }}</div>
             </div>
             <div class="full">
                 <label>Recovery Email <span class="req">*</span></label>

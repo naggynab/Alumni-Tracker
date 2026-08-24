@@ -1,3 +1,4 @@
+import re
 import uuid
 
 from django import forms
@@ -29,6 +30,34 @@ def _normalize_batch(value):
     if len(batch) == 4 and batch.startswith("20"):
         return batch[1:]
     return batch
+
+
+def normalize_date_of_birth(value):
+    """Normalize common B.S. date spellings to a comparable YYYY/MM/DD key."""
+    parts = [
+        part.strip()
+        for part in re.split(r"[/.-]", str(value or "").strip())
+        if part.strip()
+    ]
+    if len(parts) != 3 or not all(part.isdigit() for part in parts):
+        return ""
+
+    numbers = [int(part) for part in parts]
+    if len(parts[0]) == 4 or numbers[0] >= 1900:
+        year, month, day = numbers
+    elif len(parts[2]) == 4 or numbers[2] >= 1900:
+        month, day, year = numbers
+    else:
+        return ""
+
+    if not (1900 <= year <= 2200 and 1 <= month <= 12 and 1 <= day <= 32):
+        return ""
+    return f"{year:04d}/{month:02d}/{day:02d}"
+
+
+def _date_matches(record, value):
+    expected = normalize_date_of_birth(value)
+    return bool(expected) and normalize_date_of_birth(record.date_of_birth_bs) == expected
 
 
 class RollNumberLoginForm(AllauthLoginForm):
@@ -92,7 +121,12 @@ class RegistrationForm(forms.Form):
         ),
     )
     date_of_birth = forms.CharField(
-        max_length=15, widget=forms.TextInput(attrs={"placeholder": "mm/dd/yyyy"})
+        max_length=15,
+        label="Date of birth (B.S.)",
+        help_text=(
+            "Enter month/day/year, for example 12/01/2061. Leading zeros are optional."
+        ),
+        widget=forms.TextInput(attrs={"placeholder": "12/01/2061"}),
     )
     email = forms.EmailField(
         label="Recovery email",
@@ -169,16 +203,18 @@ class RegistrationForm(forms.Form):
                         "date_of_birth",
                         "Date of birth is required to verify a pre-loaded record.",
                     )
-                elif not identity_matches.filter(
-                    date_of_birth_bs__iexact=cleaned["date_of_birth"].strip()
-                ).exists():
+                elif not any(
+                    _date_matches(record, cleaned["date_of_birth"])
+                    for record in identity_matches
+                ):
                     self.add_error(
                         "date_of_birth",
                         "The date of birth does not match our records.",
                     )
-                elif identity_matches.filter(
-                    date_of_birth_bs__iexact=cleaned["date_of_birth"].strip()
-                ).count() > 1:
+                elif sum(
+                    _date_matches(record, cleaned["date_of_birth"])
+                    for record in identity_matches
+                ) > 1:
                     self.add_error(
                         "roll_number",
                         "This roll number is linked to multiple records. Please contact the administrator.",
@@ -208,14 +244,17 @@ class RegistrationForm(forms.Form):
         )
 
         # Link an existing unclaimed record by roll number, else create one.
-        alumnus = Alumnus.objects.filter(
+        candidates = Alumnus.objects.filter(
             user_account__isnull=True,
             class_roll_no__iexact=data["roll_number"].strip(),
             last_name__iexact=data["last_name"].strip(),
             batch=batch,
             field_of_study=field,
-            date_of_birth_bs__iexact=data["date_of_birth"].strip(),
-        ).first()
+        )
+        alumnus = next(
+            (record for record in candidates if _date_matches(record, data["date_of_birth"])),
+            None,
+        )
         if alumnus is None:
             alumnus = Alumnus(
                 first_name=data["first_name"].strip(),
@@ -278,9 +317,14 @@ class ClaimRecordForm(forms.Form):
         if data.get("class_roll_no"):
             qs = qs.filter(class_roll_no__iexact=data["class_roll_no"].strip())
         if data.get("date_of_birth_bs"):
-            qs = qs.filter(date_of_birth_bs=data["date_of_birth_bs"].strip())
-
-        matches = list(qs[:2])
+            matches = list(qs)
+            matches = [
+                record
+                for record in matches
+                if _date_matches(record, data["date_of_birth_bs"])
+            ]
+        else:
+            matches = list(qs[:2])
         return matches[0] if len(matches) == 1 else None
 
 
@@ -344,7 +388,7 @@ class AlumnusProfileForm(forms.ModelForm):
             "is_public",
         ]
         labels = {
-            "date_of_birth_bs": "Date of Birth",
+            "date_of_birth_bs": "Date of Birth (B.S.)",
             "contact_number": "Phone Number",
             "permanent_district": "Address",
             "current_city": "City",
@@ -358,7 +402,7 @@ class AlumnusProfileForm(forms.ModelForm):
             "is_public": "Show my profile in the public yearbook",
         }
         widgets = {
-            "date_of_birth_bs": forms.TextInput(attrs={"placeholder": "mm/dd/yyyy"}),
+            "date_of_birth_bs": forms.TextInput(attrs={"placeholder": "12/01/2061"}),
             "contact_number": forms.TextInput(attrs={"placeholder": "98XXXXXXXX"}),
             "permanent_district": forms.TextInput(attrs={"placeholder": "Address"}),
             "current_city": forms.TextInput(attrs={"placeholder": "City"}),

@@ -7,7 +7,7 @@ from django.urls import reverse
 from allauth.account.forms import ResetPasswordForm, SetPasswordForm
 from allauth.account.models import EmailAddress
 
-from .forms import RegistrationForm, RollNumberLoginForm
+from .forms import ClaimRecordForm, RegistrationForm, RollNumberLoginForm
 from directory.choices import FIELD_COMPUTER
 from directory.models import Alumnus
 
@@ -46,6 +46,19 @@ class ClaimFlowTests(TestCase):
         self.record.refresh_from_db()
         self.assertEqual(self.record.user_account, self.user)
         self.assertTrue(self.record.is_public)
+
+    def test_claim_accepts_equivalent_bs_date_spelling(self):
+        form = ClaimRecordForm(
+            data={
+                "batch": "078",
+                "field_of_study": FIELD_COMPUTER,
+                "last_name": "Karki",
+                "date_of_birth_bs": "2056/1/1",
+            }
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.find_match(), self.record)
 
     def test_wrong_details_do_not_link(self):
         resp = self.client.post(
@@ -172,6 +185,30 @@ class RegistrationSecurityTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn("date_of_birth", form.errors)
+
+    def test_preloaded_registration_accepts_zero_padded_bs_date(self):
+        Alumnus.objects.create(
+            first_name="Aditya",
+            last_name="Shah",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            class_roll_no="080BCT011",
+            date_of_birth_bs="12/1/2061",
+        )
+        data = self.registration_data("ValidPass1!")
+        data.update(
+            {
+                "first_name": "Aditya",
+                "last_name": "Shah",
+                "roll_number": "080BCT011",
+                "date_of_birth": "12/01/2061",
+                "email": "aditya@example.com",
+            }
+        )
+
+        form = RegistrationForm(data=data)
+
+        self.assertTrue(form.is_valid(), form.errors)
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_recovery_email_can_request_password_reset(self):
