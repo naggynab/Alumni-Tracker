@@ -35,9 +35,9 @@ authentication story and campus-wide (multi-faculty) search.
 Filters combine, paginate, and preserve state across pages.
 
 **Self-service profiles** — once linked, alumni edit their own employment,
-location, further-study and contact details. Imported and newly claimed records
-are private by default; an alumnus must opt in before appearing in the public
-yearbook.
+location, further-study and contact details. The supplied alumni dataset is
+approved for publication and appears in the public yearbook; contact details
+remain handled through the application's private contact workflows.
 
 ## Project layout
 
@@ -237,8 +237,8 @@ Remove-Item Env:DATABASE_URL
 ```
 
 Do not put the connection string, source files, exports, or database backups in
-Git, tickets, screenshots, or chat. Imported records are private by default;
-staff should publish only records for which the alumnus has opted in.
+Git, tickets, screenshots, or chat. The supplied dataset is approved for
+publication; review any future dataset's approval status before importing it.
 
 ## Tests
 

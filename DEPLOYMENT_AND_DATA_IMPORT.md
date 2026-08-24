@@ -127,12 +127,13 @@ The temporary mechanism provided:
 
 The import was run without the destructive `--flush` option. This avoided deleting any existing records.
 
-The importer applied the project’s privacy behavior:
+At import time, the importer applied the project’s then-configured privacy
+behavior:
 
 - Detailed JSON records were imported.
 - Roster CSV records were imported.
 - Duplicate records already represented by the JSON data were skipped where appropriate.
-- Imported alumni records were marked `is_public=False`.
+- Imported alumni records were initially marked `is_public=False`.
 
 ## 7. Real data import
 
@@ -191,13 +192,17 @@ The following checks were completed after cleanup:
 
 The authenticated alumni API was not used as a public data check because it requires a valid bearer token. This is expected application behavior.
 
-## 10. Current privacy behavior
+## 10. Publication approval
 
-The imported records are stored in the production PostgreSQL database but remain private because they were imported with `is_public=False`.
+The dataset owner later approved all imported records for publication. A
+follow-up application migration changed every existing alumni record to
+`is_public=True`, and the importer was updated to mark future imports public by
+default.
 
-As a result, the public alumni directory may not display the imported profiles until an authorized administrator publishes or approves them through the application’s intended workflow.
+The public directory therefore uses the complete approved dataset. Contact
+details are still handled through the application's private contact workflows.
 
-This keeps the real personal data from being exposed merely because the website is online for demonstration.
+The raw CSV and JSON source files remain outside GitHub and public file storage.
 
 ## 11. Current deployment state
 
@@ -205,11 +210,11 @@ The project is currently deployed as follows:
 
 - Website: `https://alumni-tracker.itprojects.pcampus.edu.np/`
 - Application source: GitHub `main` branch.
-- Latest cleanup commit: `5e318b9`.
+- Latest publication commit: recorded in Git after deployment.
 - Application container: running through Coolify.
 - Production database: `alumni-tracker-db-real`.
 - Database access: internal/private only.
-- Real alumni records: imported and private.
+- Real alumni records: imported and approved for publication.
 - Temporary import endpoint: removed.
 - Temporary import credentials: removed.
 - Raw data files in GitHub: none.
@@ -219,10 +224,8 @@ The project is currently deployed as follows:
 Before the demonstration:
 
 1. Test the login and administrator workflow.
-2. Confirm which records should be made public for the demo.
-3. Publish only the minimum records needed for the presentation.
-4. Confirm that the public directory does not expose private contact or address fields.
-5. Create a PostgreSQL backup before making further data changes.
+2. Confirm that the public directory does not expose private contact or address fields.
+3. Create a PostgreSQL backup before making further data changes.
 
 After the demonstration:
 
