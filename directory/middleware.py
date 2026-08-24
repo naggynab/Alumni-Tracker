@@ -1,0 +1,21 @@
+"""Privacy-conscious account activity history."""
+
+from .notifications import record_activity
+
+
+class ActivityMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        user = getattr(request, "user", None)
+        path = request.path or ""
+        if (
+            user
+            and user.is_authenticated
+            and response.status_code < 400
+            and not path.startswith(("/static/", "/media/", "/admin/jsi18n/"))
+        ):
+            record_activity(user, "page_view", path)
+        return response

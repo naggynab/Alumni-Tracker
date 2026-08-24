@@ -31,6 +31,9 @@ from directory.choices import (
     FIELD_ELECTRONICS,
     normalize_field_of_study,
     normalize_gender,
+    normalize_city,
+    normalize_employer,
+    normalize_institution,
 )
 from directory.models import Alumnus
 
@@ -204,13 +207,20 @@ class Command(BaseCommand):
                     batch=normalize_batch(batch),
                     class_roll_no=str(roll).strip(),
                     current_city=current_city.strip() if current_city else "",
+                    current_city_canonical=normalize_city(current_city),
                     current_country=current_country or "",
                     permanent_district=perm_district.strip() if perm_district else "",
                     permanent_country=perm_country or "",
                     employment_status=(s.get("employment_status") or "").strip(),
                     employer_organization=(s.get("currently_employed_organization") or "").strip(),
+                    employer_canonical=normalize_employer(
+                        s.get("currently_employed_organization")
+                    ),
                     job_title=(s.get("current_post_in_organization") or "").strip(),
                     further_study_institution=(fa.get("institution") if fa else "") or "",
+                    further_study_institution_canonical=normalize_institution(
+                        (fa.get("institution") if fa else "") or ""
+                    ),
                     further_study_country=(fa.get("country") if fa else "") or "",
                     email=(s.get("email") or "").strip(),
                     contact_number=(s.get("contact_number") or "").strip(),
@@ -264,6 +274,7 @@ class Command(BaseCommand):
                     # The roster records home addresses, so treat them as
                     # permanent; current location is left for alumni to fill in.
                     current_city=(row.get("district") or "").strip(),
+                    current_city_canonical=normalize_city(row.get("district")),
                     current_country=country,
                     permanent_district=(row.get("district") or "").strip(),
                     permanent_country=country,

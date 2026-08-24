@@ -1,0 +1,3 @@
+{% extends "base_app.html" %}
+{% block title %}Resource library{% endblock %}
+{% block content %}<h1 class="page-title">Resource library</h1><p class="page-sub">Useful links and materials shared by the alumni community.</p><p><a class="btn btn-primary" href="{% url 'directory:resource-submit' %}">Suggest a resource</a></p><div class="service-grid">{% for item in resources %}<section class="panel service-card"><div class="panel-title">{{ item.title }}</div><p class="service-meta">{{ item.category }}</p><p class="muted">{{ item.description }}</p><a class="btn btn-secondary" href="{{ item.url }}" target="_blank" rel="noopener">Open resource</a></section>{% empty %}<section class="panel"><p>No resources published yet.</p></section>{% endfor %}</div>{% endblock %}

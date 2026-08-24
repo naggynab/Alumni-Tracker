@@ -1,0 +1,15 @@
+{% extends "base_app.html" %}
+{% block title %}Correction Requests{% endblock %}
+{% block content %}
+<h1 class="page-title">Correction Requests</h1>
+<p class="page-sub">Your current record remains unchanged until a department reviewer approves a request.</p>
+<form class="panel workflow-form" method="post">
+    {% csrf_token %}
+    {% for field in form %}<div class="rf-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}{{ field.errors }}</div>{% endfor %}
+    <div class="app-actions"><button class="btn btn-primary" type="submit">Submit correction</button></div>
+</form>
+<section class="panel stat-panel">
+    <div class="panel-title">My requests</div>
+    {% if corrections %}<table class="report-table"><thead><tr><th>Field</th><th>Current</th><th>Proposed</th><th>Status</th><th>Submitted</th></tr></thead><tbody>{% for correction in corrections %}<tr><td>{{ correction.field_name|title }}</td><td>{{ correction.current_value|default:"—" }}</td><td>{{ correction.proposed_value }}</td><td>{{ correction.get_status_display }}</td><td>{{ correction.created_at|date:"Y-m-d" }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="bar-empty">You have not submitted a correction request.</p>{% endif %}
+</section>
+{% endblock %}

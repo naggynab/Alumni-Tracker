@@ -1,0 +1,2 @@
+/* Additive styles used only by authenticated Student Services pages. */
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent-gold);outline-offset:2px}

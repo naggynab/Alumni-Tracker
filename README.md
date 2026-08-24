@@ -67,6 +67,90 @@ Open http://127.0.0.1:8000/. In development, verification/reset emails print to
 the console, and the database defaults to a local SQLite file (set `DATABASE_URL`
 for Postgres).
 
+For Windows, `start.bat` applies pending migrations, starts the development
+server in the background, and opens http://127.0.0.1:8000/. Run `stop.bat` when
+you are finished. The PowerShell versions (`start.ps1` and `stop.ps1`) do the
+same work from a terminal. Server output is saved under `logs/`.
+
+### Department officer report
+
+The Department Report is staff-only. It includes unclaimed and private records
+for internal planning and never exposes email addresses or phone numbers. The
+report covers headline totals, Nepal/abroad location, countries, cities,
+districts, batch trends, program splits, careers, higher studies, tracker
+adoption, and missing-data coverage. Department officers can download aggregate
+CSV breakdowns or the full report; every report view and export is recorded in
+`logs/department_audit.log`.
+
+Access is granted explicitly by adding a user to the `Department Staff` group,
+adding an exact address to `DEPARTMENT_EMAILS`, or (only when deliberately
+configured) trusting every user under a domain in `DEPARTMENT_EMAIL_DOMAINS`.
+The domain setting defaults to empty because enabling it grants access to every
+authenticated account under each listed domain. Administrators can manage
+named group access without the admin site:
+
+```bash
+.venv/Scripts/python.exe manage.py grant_department_access officer@example.com
+.venv/Scripts/python.exe manage.py grant_department_access officer@example.com --revoke
+.venv/Scripts/python.exe manage.py grant_department_access --list
+```
+
+The staff-only operational pages are available at `/reports/department/` and
+the following additive routes: `/reports/department/data-quality/`,
+`/reports/department/compare/`, `/reports/department/follow-ups/`,
+`/reports/department/verification/`, and `/reports/department/roles/`.
+The signed-in profile checklist is at `/me/completeness/`. These pages reuse
+the app shell and do not modify the existing home page or public UI.
+
+Student Services is available at `/student/`. It includes correction requests,
+mentorship, moderated jobs and internships, event registration/submissions,
+and private contact requests. Students only see published community content;
+corrections, jobs, and events require staff review before publication or data
+changes.
+
+The Student Services area also includes notifications, saved directory searches,
+private favorites, batch/community groups, moderated alumni stories, skills and
+endorsements, surveys, a moderated resource library, profile-based alumni
+recommendations, a downloadable profile PDF, account activity history, API token
+management, email two-step login verification, and English/Nepali language
+selection. The public home page remains unchanged.
+
+The read-only API uses a personal bearer token created at `/student/api-tokens/`:
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" http://127.0.0.1:8000/api/v1/me/
+curl -H "Authorization: Bearer YOUR_TOKEN" "http://127.0.0.1:8000/api/v1/alumni/?batch=080"
+```
+
+Department data editors can review community stories/resources at
+`/reports/department/content-moderation/` and resolve identity conflicts at
+`/reports/department/conflicts/`. Preview a CSV without writing anything with
+`python manage.py preview_alumni_import --csv path/to/file.csv`; scan scoped
+batch/program/roll identities with `python manage.py scan_data_conflicts --dry-run`
+before creating review records.
+
+Roles can be managed from the department admin page or with:
+
+```bash
+python manage.py department_role_access officer@example.com --role report
+python manage.py department_role_access officer@example.com --role editor
+python manage.py department_role_access --list
+```
+
+Before a bulk import, run `python manage.py validate_alumni_import --csv
+path/to/file.csv --fail-on-issues`. Scheduled-safe aggregate exports use
+`python manage.py export_department_report --output exports/report.csv`, and
+the included `export_department_report.ps1` can be registered with Windows
+Task Scheduler for a daily or monthly run. Local SQLite backups use
+`python manage.py backup_database`. To send reminders
+to claimed alumni with incomplete profiles, configure email delivery and run
+`python manage.py notify_incomplete_profiles --dry-run` first.
+
+The importer and `directory.choices` keep raw employer, city, and university
+text while storing indexed canonical columns for reliable filtering and
+reporting. Existing databases are backfilled by migrations; rerunning
+`python manage.py migrate` is sufficient after deployment.
+
 ### Password-reset email delivery
 
 To send reset links to real inboxes, configure SMTP in the local `.env` file.

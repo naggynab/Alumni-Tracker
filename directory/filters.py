@@ -13,7 +13,7 @@ Implements the search portal from the design mockups:
 from collections import defaultdict
 
 from django import forms
-from django.db.models import Q
+from django.db.models import Count, Q
 import django_filters
 from django_countries import Countries
 
@@ -43,7 +43,7 @@ class AlumnusFilter(django_filters.FilterSet):
         empty_label="Select Country",
     )
     current_city = django_filters.ChoiceFilter(
-        field_name="current_city", lookup_expr="exact", label="City",
+        field_name="current_city_canonical", lookup_expr="exact", label="City",
         empty_label="Select City",
     )
     employer = django_filters.CharFilter(
@@ -51,7 +51,7 @@ class AlumnusFilter(django_filters.FilterSet):
         label="Search by Organization", widget=_text("Enter organization..."),
     )
     university = django_filters.ChoiceFilter(
-        field_name="further_study_institution", lookup_expr="exact",
+        field_name="further_study_institution_canonical", lookup_expr="exact",
         label="Search by University", empty_label="Select University",
     )
 
@@ -76,40 +76,59 @@ class AlumnusFilter(django_filters.FilterSet):
         )
         self.filters["batch"].extra["choices"] = [(b, b) for b in batches]
 
-        city_map = defaultdict(set)
+        city_map = defaultdict(dict)
         city_rows = (
             base.exclude(current_city="")
-            .values_list("current_country", "current_city")
-            .distinct()
+            .values("current_country", "current_city_canonical", "current_city")
+            .annotate(raw_count=Count("id"))
         )
-        for code, city in city_rows:
-            code = (code or "").strip()
-            city = (city or "").strip()
-            if code and city:
-                city_map[code].add(city)
+        for row in city_rows:
+            code = (row["current_country"] or "").strip()
+            canonical = (row["current_city_canonical"] or "").strip()
+            city = (row["current_city"] or "").strip()
+            if code and canonical:
+                previous = city_map[code].get(canonical)
+                if previous is None or row["raw_count"] > previous["count"]:
+                    city_map[code][canonical] = {"label": city, "count": row["raw_count"]}
 
         self.city_choices_by_country = {
-            code: sorted(cities, key=str.lower)
+            code: sorted(
+                [(value, data["label"]) for value, data in cities.items()],
+                key=lambda pair: pair[1].lower(),
+            )
             for code, cities in city_map.items()
         }
 
         if selected_country:
             city_choices = [
-                (city, city)
-                for city in self.city_choices_by_country.get(selected_country, [])
+                (value, label)
+                for value, label in self.city_choices_by_country.get(selected_country, [])
             ]
             self.filters["current_city"].extra["empty_label"] = "Select City"
         else:
-            city_choices = []
-            self.filters["current_city"].extra["empty_label"] = "Select Country First"
+            all_cities = {}
+            for choices in self.city_choices_by_country.values():
+                for value, label in choices:
+                    all_cities[value] = label
+            city_choices = sorted(all_cities.items(), key=lambda pair: pair[1].lower())
+            self.filters["current_city"].extra["empty_label"] = "Select City"
 
         self.filters["current_city"].extra["choices"] = city_choices
 
-        unis = (
-            base.exclude(further_study_institution="").order_by("further_study_institution")
-            .values_list("further_study_institution", flat=True).distinct()
+        uni_rows = (
+            base.exclude(further_study_institution_canonical="")
+            .values("further_study_institution_canonical", "further_study_institution")
+            .annotate(raw_count=Count("id"))
         )
-        self.filters["university"].extra["choices"] = [(u, u) for u in unis]
+        uni_labels = {}
+        for row in uni_rows:
+            value = row["further_study_institution_canonical"]
+            if value not in uni_labels or row["raw_count"] > uni_labels[value][1]:
+                uni_labels[value] = (row["further_study_institution"], row["raw_count"])
+        self.filters["university"].extra["choices"] = sorted(
+            [(value, data[0]) for value, data in uni_labels.items()],
+            key=lambda pair: pair[1].lower(),
+        )
 
         names = Countries()
         codes = (
@@ -123,7 +142,7 @@ class AlumnusFilter(django_filters.FilterSet):
         self.filters["country"].extra["choices"] = country_choices
 
         # Push the freshly computed choices onto the already-built form fields.
-        for key in ("batch", "current_city", "university", "country"):
+        for key in ("batch", "university", "country"):
             computed_choices = list(self.filters[key].extra["choices"])
             if computed_choices and computed_choices[0][0] == "":
                 self.form.fields[key].choices = computed_choices
@@ -133,23 +152,12 @@ class AlumnusFilter(django_filters.FilterSet):
                 ] + computed_choices
 
         city_field = self.form.fields["current_city"]
-        unique_city_choices = []
-        seen_empty = False
-        for value, label in city_field.choices:
-            if value == "":
-                if seen_empty:
-                    continue
-                seen_empty = True
-                unique_city_choices.append(("", self.filters["current_city"].extra["empty_label"]))
-            else:
-                unique_city_choices.append((value, label))
-        city_field.choices = unique_city_choices
+        # django-filter's ChoiceField adds its configured empty label itself;
+        # supplying another blank option here would duplicate it.
+        city_field.choices = city_choices
 
         city_field.widget.attrs["data-selected-city"] = selected_city
-        if selected_country:
-            city_field.widget.attrs.pop("disabled", None)
-        else:
-            city_field.widget.attrs["disabled"] = "disabled"
+        city_field.widget.attrs.pop("disabled", None)
 
     def filter_name(self, queryset, name, value):
         """Every whitespace-separated term must appear in some name part."""

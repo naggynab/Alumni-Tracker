@@ -1,0 +1,12 @@
+{% extends "base_app.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<h1 class="page-title">Notifications</h1>
+<p class="page-sub">Updates about your requests, groups, and community activity.</p>
+<div class="panel">
+    <div class="service-actions"><strong>{{ unread_count }} unread</strong><form method="post">{% csrf_token %}<button class="btn btn-secondary" type="submit">Mark all as read</button></form></div>
+    <ul class="workflow-list">
+    {% for item in notifications %}<li><div><strong>{% if not item.is_read %}● {% endif %}{{ item.title }}</strong><br><span>{{ item.message }}</span></div><span>{{ item.created_at|date:"M j, Y g:i A" }}{% if not item.is_read %}<form method="post" action="{% url 'directory:notification-read' item.pk %}">{% csrf_token %}<button class="btn btn-secondary" type="submit">Read</button></form>{% endif %}</span></li>{% empty %}<li>No notifications yet.</li>{% endfor %}
+    </ul>
+</div>
+{% endblock %}

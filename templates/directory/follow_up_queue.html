@@ -1,0 +1,10 @@
+{% extends "base_app.html" %}
+{% load humanize %}
+{% block title %}Follow-up Queue{% endblock %}
+{% block content %}
+<h1 class="page-title">Follow-up Queue</h1>
+<p class="page-sub">Track outreach items for records that need clarification or updated information.</p>
+<div class="queue-tabs">{% for code,label in status_choices %}<a class="btn {% if status == code %}btn-primary{% else %}btn-light{% endif %}" href="?status={{ code }}">{{ label }}</a>{% endfor %}</div>
+<section class="panel stat-panel"><div class="panel-title">{{ status|title }} items</div>{% if followups %}<table class="report-table"><thead><tr><th>Record</th><th>Reason</th><th>Next contact</th><th>Updated</th><th></th></tr></thead><tbody>{% for item in followups %}<tr><td>{{ item.alumnus.full_name }}<br><span class="muted">Batch {{ item.alumnus.batch }} · {{ item.alumnus.class_roll_no }}</span></td><td>{{ item.reason|default:"—" }}</td><td>{{ item.next_contact_at|default:"—" }}</td><td>{{ item.updated_at|date:"Y-m-d" }}</td><td>{% if can_edit_workflows %}<a href="{% url 'directory:follow-up-edit' item.pk %}">Edit</a>{% endif %}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="bar-empty">No {{ status }} follow-ups.</p>{% endif %}</section>
+<section class="panel stat-panel"><div class="panel-title">Suggested records</div><p class="muted">These unclaimed records have no current-country entry and do not yet have a follow-up.</p>{% if candidates %}<table class="report-table"><thead><tr><th>Record</th><th>Batch</th><th></th></tr></thead><tbody>{% for alumnus in candidates %}<tr><td>{{ alumnus.full_name }}</td><td>{{ alumnus.batch }}</td><td>{% if can_edit_workflows %}<a href="{% url 'directory:follow-up-create' alumnus.pk %}">Create follow-up</a>{% endif %}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="bar-empty">No suggested records.</p>{% endif %}</section>
+{% endblock %}

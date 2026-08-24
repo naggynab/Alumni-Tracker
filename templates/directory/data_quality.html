@@ -1,0 +1,21 @@
+{% extends "base_app.html" %}
+{% load humanize %}
+{% block title %}Data Quality{% endblock %}
+{% block content %}
+<h1 class="page-title">Data Quality</h1>
+<p class="page-sub">Find records that need cleanup or a follow-up, without exposing contact details in the report.</p>
+<form class="panel report-filters" method="get">
+    <div class="rf-fields"><div class="rf-field"><label for="id_scope">Scope</label>{{ form.scope }}</div></div>
+    <div class="rf-actions"><button class="btn btn-primary" type="submit">Apply</button><a class="btn btn-ghost" href="{% url 'directory:department-data-quality' %}">Clear</a></div>
+</form>
+<div class="kpi-grid">
+    <div class="kpi"><span class="k-label">Records checked</span><span class="k-val">{{ quality.total|intcomma }}</span><span class="k-sub">{{ quality.claimed|intcomma }} claimed · {{ quality.unclaimed|intcomma }} unclaimed</span></div>
+    <div class="kpi"><span class="k-label">Open follow-ups</span><span class="k-val">{{ quality.open_followups|intcomma }}</span><span class="k-sub"><a href="{% url 'directory:follow-up-queue' %}">Open queue</a></span></div>
+    <div class="kpi"><span class="k-label">Incomplete identity</span><span class="k-val">{{ quality.incomplete_identity|intcomma }}</span><span class="k-sub">missing name or roll number</span></div>
+</div>
+<div class="stat-grid">
+    <section class="panel stat-panel"><div class="panel-title">Missing fields</div><table class="report-table"><thead><tr><th>Field</th><th>Missing</th><th>Share</th></tr></thead><tbody>{% for row in quality.missing %}<tr><td>{{ row.label }}</td><td>{{ row.total|intcomma }}</td><td>{{ row.share }}%</td></tr>{% endfor %}</tbody></table></section>
+    <section class="panel stat-panel"><div class="panel-title">Potential duplicate identities</div><p class="coverage-note">Only the same batch + program + roll serial is shown. The same serial in another batch or department is valid.</p>{% if quality.duplicate_rolls %}<table class="report-table"><thead><tr><th>Batch</th><th>Program</th><th>Roll serial</th><th>Records</th></tr></thead><tbody>{% for row in quality.duplicate_rolls %}<tr><td>{{ row.batch }}</td><td>{{ row.program }}</td><td>{{ row.roll_number }}</td><td>{{ row.total }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="bar-empty">No scoped duplicate roll identities found.</p>{% endif %}</section>
+</div>
+<section class="panel stat-panel"><div class="panel-title">Repeated names</div>{% if quality.duplicate_names %}<table class="report-table"><thead><tr><th>Name</th><th>Records</th></tr></thead><tbody>{% for row in quality.duplicate_names %}<tr><td>{{ row.first_name }} {{ row.middle_name }} {{ row.last_name }}</td><td>{{ row.total }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="bar-empty">No repeated full names found.</p>{% endif %}</section>
+{% endblock %}

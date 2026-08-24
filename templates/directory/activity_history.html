@@ -1,0 +1,3 @@
+{% extends "base_app.html" %}
+{% block title %}Account activity{% endblock %}
+{% block content %}<h1 class="page-title">Account activity</h1><p class="page-sub">Recent successful pages and actions for your account.</p><section class="panel"><ul class="workflow-list">{% for activity in activities %}<li><strong>{{ activity.action|capfirst }}</strong><span>{{ activity.path }} · {{ activity.created_at|date:"M j, Y g:i A" }}</span></li>{% empty %}<li>No activity recorded yet.</li>{% endfor %}</ul></section>{% endblock %}

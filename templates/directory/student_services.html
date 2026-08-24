@@ -1,0 +1,65 @@
+{% extends "base_app.html" %}
+{% load humanize i18n %}
+{% block title %}Student Services{% endblock %}
+{% block content %}
+<h1 class="page-title">Student Services</h1>
+<p class="page-sub">Connect with the alumni community, keep your record accurate, and find opportunities.</p>
+
+<div class="service-grid">
+    <section class="panel service-card">
+        <div class="panel-title">Correct my information</div>
+        <p class="muted">Submit a correction request without changing verified records directly.</p>
+        <p class="service-meta">{{ pending_corrections }} open request{{ pending_corrections|pluralize }}</p>
+        <a class="btn btn-primary" href="{% url 'directory:correction-requests' %}">Request a correction</a>
+    </section>
+    <section class="panel service-card">
+        <div class="panel-title">Mentorship</div>
+        <p class="muted">Find experienced alumni or offer guidance in your area of expertise.</p>
+        <p class="service-meta">{{ pending_requests }} pending request{{ pending_requests|pluralize }}</p>
+        <a class="btn btn-primary" href="{% url 'directory:mentorship' %}">Explore mentorship</a>
+    </section>
+    <section class="panel service-card">
+        <div class="panel-title">Jobs &amp; internships</div>
+        <p class="muted">Browse community opportunities or submit a verified opportunity.</p>
+        <a class="btn btn-primary" href="{% url 'directory:job-board' %}">Open job board</a>
+    </section>
+    <section class="panel service-card">
+        <div class="panel-title">Events &amp; reunions</div>
+        <p class="muted">Keep up with published reunions, talks, and alumni gatherings.</p>
+        <a class="btn btn-primary" href="{% url 'directory:event-list' %}">View events</a>
+    </section>
+    <section class="panel service-card">
+        <div class="panel-title">Private contacts</div>
+        <p class="muted">Send a contact request without exposing anyone's email or phone number.</p>
+        <a class="btn btn-primary" href="{% url 'directory:contact-requests' %}">Manage contacts</a>
+    </section>
+</div>
+
+<h2 class="page-title" style="font-size:1.45rem;margin-top:32px">Community tools</h2>
+<p class="page-sub">Personal tools for staying connected, discovering opportunities, and managing your account.</p>
+<div class="service-grid">
+    <section class="panel service-card"><div class="panel-title">Notifications</div><p class="muted">See updates about requests and community activity.</p><a class="btn btn-primary" href="{% url 'directory:notifications' %}">View notifications</a></section>
+    <section class="panel service-card"><div class="panel-title">Saved searches &amp; favorites</div><p class="muted">Keep useful directory searches and alumni profiles close.</p><div class="service-actions"><a class="btn btn-primary" href="{% url 'directory:saved-searches' %}">Saved searches</a><a class="btn btn-secondary" href="{% url 'directory:favorites' %}">Favorites</a></div></section>
+    <section class="panel service-card"><div class="panel-title">Batch communities</div><p class="muted">Join classmates or create an interest group.</p><a class="btn btn-primary" href="{% url 'directory:community-groups' %}">Explore groups</a></section>
+    <section class="panel service-card"><div class="panel-title">Stories &amp; skills</div><p class="muted">Share achievements, add skills, and endorse peers.</p><div class="service-actions"><a class="btn btn-primary" href="{% url 'directory:stories' %}">Stories</a><a class="btn btn-secondary" href="{% url 'directory:skills' %}">Skills</a></div></section>
+    <section class="panel service-card"><div class="panel-title">Resources &amp; feedback</div><p class="muted">Browse shared resources and help improve the tracker.</p><div class="service-actions"><a class="btn btn-primary" href="{% url 'directory:resources' %}">Resources</a><a class="btn btn-secondary" href="{% url 'directory:surveys' %}">Surveys</a></div></section>
+    <section class="panel service-card"><div class="panel-title">Recommendations</div><p class="muted">Discover alumni with similar programs and interests.</p><a class="btn btn-primary" href="{% url 'directory:recommendations' %}">See recommendations</a></section>
+</div>
+
+<section class="panel"><div class="panel-title">Account tools</div><div class="service-actions"><a class="btn btn-secondary" href="{% url 'directory:resume-pdf' %}">Download profile PDF</a><a class="btn btn-secondary" href="{% url 'directory:activity-history' %}">Activity history</a><a class="btn btn-secondary" href="{% url 'directory:api-tokens' %}">API access</a><a class="btn btn-secondary" href="{% url 'directory:security' %}">Security</a></div><hr style="border:0;border-top:1px solid var(--line);margin:22px 0 16px"><form action="{% url 'set_language' %}" method="post" class="service-actions">{% csrf_token %}<label for="language">Language</label><select id="language" name="language">{% get_current_language as CURRENT_LANGUAGE %}{% get_available_languages as AVAILABLE_LANGUAGES %}{% for code, name in AVAILABLE_LANGUAGES %}<option value="{{ code }}"{% if code == CURRENT_LANGUAGE %} selected{% endif %}>{{ name }}</option>{% endfor %}</select><input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-secondary">Save language</button></form></section>
+
+<div class="stat-grid">
+    <section class="panel stat-panel">
+        <div class="panel-title">Upcoming events</div>
+        {% if upcoming_events %}
+        <ul class="workflow-list">{% for event in upcoming_events %}<li><strong>{{ event.title }}</strong><span>{{ event.starts_at|date:"M j, Y · g:i A" }}{% if event.location %} · {{ event.location }}{% endif %}</span></li>{% endfor %}</ul>
+        {% else %}<p class="bar-empty">No published events yet.</p>{% endif %}
+    </section>
+    <section class="panel stat-panel">
+        <div class="panel-title">Recent opportunities</div>
+        {% if current_jobs %}
+        <ul class="workflow-list">{% for job in current_jobs %}<li><strong>{{ job.title }}</strong><span>{{ job.organization }} · {{ job.get_employment_type_display }}</span></li>{% endfor %}</ul>
+        {% else %}<p class="bar-empty">No published opportunities yet.</p>{% endif %}
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,6 @@
+{% extends "base_app.html" %}
+{% block title %}Favorite alumni{% endblock %}
+{% block content %}
+<h1 class="page-title">Favorite alumni</h1><p class="page-sub">A private shortlist of people you want to find again.</p>
+<section class="panel"><ul class="workflow-list">{% for item in favorites %}<li><div><strong><a href="{% url 'directory:alumnus-detail' item.alumnus.pk %}">{{ item.alumnus.full_name }}</a></strong><br><span>{{ item.alumnus.get_field_of_study_display }} · Batch {{ item.alumnus.batch }}{% if item.alumnus.current_city %} · {{ item.alumnus.current_city }}{% endif %}</span></div><form method="post" action="{% url 'directory:favorite-toggle' item.alumnus.pk %}">{% csrf_token %}<button class="btn btn-secondary">Remove</button></form></li>{% empty %}<li>No favorites yet. Save alumni from the directory.</li>{% endfor %}</ul></section>
+{% endblock %}

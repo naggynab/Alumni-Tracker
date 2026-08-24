@@ -1,0 +1,9 @@
+{
+  "name": "DOECE Alumni Tracker",
+  "short_name": "Alumni Tracker",
+  "start_url": "/student/",
+  "display": "standalone",
+  "background_color": "#f5f7fc",
+  "theme_color": "#0d234a",
+  "description": "Alumni directory and community services for DOECE."
+}

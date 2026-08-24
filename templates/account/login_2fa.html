@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Verify sign in{% endblock %}
+{% block content %}
+<section class="section"><div class="find-card" style="max-width:520px;margin:40px auto"><h1>Verify your sign in</h1><p class="muted">Enter the six-digit code sent to your account email.</p><form method="post">{% csrf_token %}<label for="id_code">Verification code</label><input id="id_code" name="code" maxlength="6" inputmode="numeric" autocomplete="one-time-code" required><button class="btn btn-primary" type="submit">Verify and continue</button></form></div></section>
+{% endblock %}

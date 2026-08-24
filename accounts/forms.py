@@ -15,7 +15,7 @@ from directory.choices import (
     PROGRAM_CHOICES,
     PROGRAM_TO_FIELD,
 )
-from directory.models import Alumnus
+from directory.models import Alumnus, ClaimReview
 
 from .authentication import normalize_roll_number
 
@@ -203,6 +203,12 @@ class RegistrationForm(forms.Form):
         if not alumnus.email:
             alumnus.email = data["email"]
         alumnus.save()
+        ClaimReview.objects.create(
+            alumnus=alumnus,
+            claimant=user,
+            status="pending",
+            note="Created during alumni registration.",
+        )
         return user
 
 

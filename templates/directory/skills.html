@@ -1,0 +1,8 @@
+{% extends "base_app.html" %}
+{% block title %}Skills and endorsements{% endblock %}
+{% block content %}
+<h1 class="page-title">Skills &amp; endorsements</h1><p class="page-sub">Add verified skills to your profile and recognize the strengths of fellow alumni.</p>
+<section class="panel workflow-form"><div class="panel-title">Add a skill</div><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Add skill</button></form></section>
+<section class="panel"><div class="panel-title">Your skills</div><ul class="workflow-list">{% for item in own_skills %}<li><strong>{{ item.skill.name }}</strong><span>{{ item.get_level_display }} · {{ item.endorsement_count }} endorsement{{ item.endorsement_count|pluralize }}</span></li>{% empty %}<li>No skills added yet.</li>{% endfor %}</ul></section>
+<section class="panel"><div class="panel-title">Discover skills</div><ul class="workflow-list">{% for item in available %}<li><div><strong>{{ item.alumnus.full_name }}</strong><br><span>{{ item.skill.name }} · {{ item.get_level_display }} · {{ item.endorsement_count }} endorsement{{ item.endorsement_count|pluralize }}</span></div><form method="post" action="{% url 'directory:endorse-skill' item.pk %}">{% csrf_token %}<button class="btn btn-secondary">Endorse</button></form></li>{% empty %}<li>Other public skill profiles will appear here.</li>{% endfor %}</ul></section>
+{% endblock %}

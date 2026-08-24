@@ -85,9 +85,27 @@
     const selectedFromServer =
       citySelect.dataset.selectedCity || citySelect.value || "";
 
+    function cityEntries(countryCode) {
+      if (countryCode) {
+        return cityMap[countryCode] || [];
+      }
+
+      const all = {};
+      Object.keys(cityMap).forEach(function (code) {
+        (cityMap[code] || []).forEach(function (entry) {
+          const value = Array.isArray(entry) ? entry[0] : entry;
+          const label = Array.isArray(entry) ? entry[1] : entry;
+          all[value] = label;
+        });
+      });
+      return Object.keys(all).sort().map(function (value) {
+        return [value, all[value]];
+      });
+    }
+
     function rebuildCityOptions(countryCode, preferredCity) {
-      const cities = cityMap[countryCode] || [];
-      const placeholder = countryCode ? "Select City" : "Select Country First";
+      const cities = cityEntries(countryCode);
+      const placeholder = "Select City";
 
       citySelect.innerHTML = "";
 
@@ -96,25 +114,58 @@
       emptyOption.textContent = placeholder;
       citySelect.appendChild(emptyOption);
 
-      cities.forEach(function (city) {
+      cities.forEach(function (entry) {
+        const city = Array.isArray(entry) ? entry[0] : entry;
+        const label = Array.isArray(entry) ? entry[1] : entry;
         const option = document.createElement("option");
         option.value = city;
-        option.textContent = city;
+        option.textContent = label;
         citySelect.appendChild(option);
       });
 
-      if (preferredCity && cities.includes(preferredCity)) {
+      if (preferredCity && cities.some(function (entry) {
+        return (Array.isArray(entry) ? entry[0] : entry) === preferredCity;
+      })) {
         citySelect.value = preferredCity;
       } else {
         citySelect.value = "";
       }
 
-      citySelect.disabled = !countryCode;
+      citySelect.disabled = false;
     }
 
     rebuildCityOptions(countrySelect.value, selectedFromServer);
     countrySelect.addEventListener("change", function () {
       rebuildCityOptions(countrySelect.value, "");
     });
+  })();
+
+  (function () {
+    function addTypeAhead(select) {
+      if (!select) {
+        return;
+      }
+      let buffer = "";
+      let resetTimer;
+      select.addEventListener("keydown", function (event) {
+        if (event.key.length !== 1 || event.ctrlKey || event.altKey || event.metaKey) {
+          return;
+        }
+        buffer += event.key.toLowerCase();
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(function () {
+          buffer = "";
+        }, 700);
+        const match = Array.from(select.options).find(function (option) {
+          return option.textContent.toLowerCase().includes(buffer);
+        });
+        if (match) {
+          select.value = match.value;
+        }
+      });
+    }
+
+    addTypeAhead(document.getElementById("{{ filter.form.current_city.id_for_label }}"));
+    addTypeAhead(document.getElementById("{{ filter.form.university.id_for_label }}"));
   })();
 </script>

@@ -1,9 +1,38 @@
-from django.test import TestCase
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.contrib.auth.models import AnonymousUser
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from .choices import normalize_field_of_study, normalize_gender, FIELD_COMPUTER, FIELD_ELECTRICAL
+from .choices import (
+    FIELD_COMPUTER,
+    FIELD_ELECTRICAL,
+    normalize_employer,
+    normalize_field_of_study,
+    normalize_gender,
+    normalize_institution,
+    normalize_roll_scope,
+    normalize_roll_serial,
+)
 from .filters import AlumnusFilter
-from .models import Alumnus
+from .models import (
+    AlumniEvent,
+    Alumnus,
+    ClaimReview,
+    ContactRequest,
+    EventRegistration,
+    FollowUp,
+    JobPosting,
+    MentorshipProfile,
+    MentorshipRequest,
+)
+from .permissions import is_department_data_editor, is_department_staff
+from .profile import profile_completeness
+from .stats import build_comparison, build_data_quality, build_report
+from .student_forms import AlumniEventForm, ContactRequestForm, JobPostingForm
+
+
+User = get_user_model()
 
 
 class NormalisationTests(TestCase):
@@ -18,6 +47,30 @@ class NormalisationTests(TestCase):
         self.assertEqual(normalize_gender("2"), "Female")
         self.assertEqual(normalize_gender("Female"), "Female")
         self.assertEqual(normalize_gender(""), "")
+
+    def test_institution_duplicate_spellings_share_a_key(self):
+        self.assertEqual(
+            normalize_institution("IIT KHARAGPUR"),
+            normalize_institution("IIT Kharagpur"),
+        )
+        self.assertEqual(
+            normalize_institution("Institute of Engineering, Pulchowk"),
+            normalize_institution("Pulchowk Campus, IOE"),
+        )
+        self.assertEqual(
+            normalize_institution("IOE pulchowk"),
+            "institute of engineering",
+        )
+
+    def test_employer_abbreviations_share_a_key(self):
+        self.assertEqual(normalize_employer("AIT"), normalize_employer("Asian Institute of Technology"))
+        self.assertEqual(normalize_employer("Univ. of Kathmandu"), normalize_employer("University of Kathmandu"))
+
+    def test_roll_identity_keeps_scope_separate_from_serial(self):
+        self.assertEqual(normalize_roll_serial("080BCT047"), "47")
+        self.assertEqual(normalize_roll_serial("047"), "47")
+        self.assertEqual(normalize_roll_scope("080BCT047"), "BCT")
+        self.assertEqual(normalize_roll_scope("047", "computer"), "computer")
 
 
 class BatchNormalisationTests(TestCase):
@@ -44,6 +97,16 @@ class FilterTests(TestCase):
             field_of_study=FIELD_ELECTRICAL, current_city="Lalitpur",
             current_country="US", employer_organization="LogPoint",
         )
+        Alumnus.objects.create(
+            first_name="Canon", last_name="One", batch="078",
+            field_of_study=FIELD_COMPUTER,
+            further_study_institution="Institute of Engineering, Pulchowk",
+        )
+        Alumnus.objects.create(
+            first_name="Canon", last_name="Two", batch="078",
+            field_of_study=FIELD_COMPUTER,
+            further_study_institution="Pulchowk Campus, IOE",
+        )
 
     def _count(self, params):
         return AlumnusFilter(params, queryset=Alumnus.objects.all()).qs.count()
@@ -53,7 +116,7 @@ class FilterTests(TestCase):
         self.assertEqual(self._count({"name": "aashish karki"}), 1)
 
     def test_batch_and_field(self):
-        self.assertEqual(self._count({"batch": "078"}), 2)
+        self.assertEqual(self._count({"batch": "078"}), 4)
         self.assertEqual(self._count({"field_of_study": FIELD_ELECTRICAL}), 1)
 
     def test_city_employer_country(self):
@@ -64,14 +127,21 @@ class FilterTests(TestCase):
         self.assertEqual(self._count({"country": "US"}), 1)
 
     def test_combined(self):
-        self.assertEqual(self._count({"batch": "078", "field_of_study": FIELD_COMPUTER}), 1)
+        self.assertEqual(self._count({"batch": "078", "field_of_study": FIELD_COMPUTER}), 3)
 
-    def test_city_requires_country_first(self):
+    def test_university_filter_matches_canonical_duplicate_spellings(self):
+        self.assertEqual(
+            self._count({"university": normalize_institution("IOE pulchowk")}),
+            2,
+        )
+
+    def test_city_choices_remain_usable_without_country(self):
         alumni_filter = AlumnusFilter({}, queryset=Alumnus.objects.all())
         city_field = alumni_filter.form.fields["current_city"]
 
-        self.assertEqual(list(city_field.choices), [("", "Select Country First")])
-        self.assertEqual(city_field.widget.attrs.get("disabled"), "disabled")
+        city_values = [value for value, _label in city_field.choices if value]
+        self.assertEqual(city_values, ["Kathmandu", "Lalitpur"])
+        self.assertNotIn("disabled", city_field.widget.attrs)
 
     def test_city_choices_are_scoped_by_country(self):
         alumni_filter = AlumnusFilter({"country": "NP"}, queryset=Alumnus.objects.all())
@@ -90,3 +160,198 @@ class ViewTests(TestCase):
     def test_private_record_hidden(self):
         a = Alumnus.objects.create(first_name="Hidden", last_name="Person", is_public=False)
         self.assertEqual(self.client.get(a.get_absolute_url()).status_code, 404)
+
+
+@override_settings(DEPARTMENT_EMAILS=[], DEPARTMENT_EMAIL_DOMAINS=[])
+class DepartmentAccessTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="officer-test", email="officer@example.com", password="ValidPass1!"
+        )
+
+    def test_anonymous_is_denied(self):
+        self.assertFalse(is_department_staff(AnonymousUser()))
+
+    def test_ordinary_user_is_denied_without_explicit_grant(self):
+        self.assertFalse(is_department_staff(self.user))
+
+    def test_superuser_is_allowed(self):
+        self.user.is_superuser = True
+        self.assertTrue(is_department_staff(self.user))
+
+    def test_allowlisted_email_is_allowed(self):
+        with self.settings(DEPARTMENT_EMAILS=["officer@example.com"]):
+            self.assertTrue(is_department_staff(self.user))
+
+    def test_group_member_is_allowed(self):
+        group = Group.objects.create(name="Department Staff")
+        group.user_set.add(self.user)
+        self.assertTrue(is_department_staff(self.user))
+
+    def test_configured_domain_is_allowed(self):
+        with self.settings(DEPARTMENT_EMAIL_DOMAINS=["example.com"]):
+            self.assertTrue(is_department_staff(self.user))
+
+    def test_unconfigured_domain_is_denied(self):
+        self.user.email = "officer@ioe.edu.np"
+        self.user.save(update_fields=["email"])
+        self.assertFalse(is_department_staff(self.user))
+
+
+class ReportAggregationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Alumnus.objects.create(
+            first_name="Nepal", last_name="Alumnus", batch="078",
+            field_of_study=FIELD_COMPUTER, current_country="NP",
+            current_city="Kathmandu", employer_organization="IIT KHARAGPUR",
+        )
+        Alumnus.objects.create(
+            first_name="Abroad", last_name="Alumnus", batch="078",
+            field_of_study=FIELD_COMPUTER, current_country="US",
+            current_city="Boston", further_study_institution="IIT Kharagpur",
+        )
+
+    def test_report_counts_location_and_program_split(self):
+        report = build_report(Alumnus.objects.all())
+        self.assertEqual(report["total"], 2)
+        self.assertEqual(report["in_nepal"], 1)
+        self.assertEqual(report["abroad"], 1)
+        self.assertEqual(report["by_field"][0]["in_nepal"], 1)
+        self.assertEqual(report["by_field"][0]["abroad"], 1)
+
+    def test_report_uses_canonical_study_institution(self):
+        report = build_report(Alumnus.objects.all())
+        self.assertEqual(report["by_study_institution"][0]["value"], "indian institute of technology kharagpur")
+
+    def test_comparison_returns_change_values(self):
+        comparison = build_comparison(
+            Alumnus.objects.filter(batch="078"),
+            Alumnus.objects.filter(batch="079"),
+        )
+        self.assertEqual(comparison["rows"][0]["a"], 2)
+        self.assertEqual(comparison["rows"][0]["b"], 0)
+        self.assertEqual(comparison["rows"][0]["change"], -2)
+
+    def test_quality_detects_missing_data_duplicates_and_followups(self):
+        first = Alumnus.objects.create(first_name="Same", last_name="Name")
+        Alumnus.objects.create(first_name="Same", last_name="Name")
+        FollowUp.objects.create(alumnus=first, reason="Check identity")
+        quality = build_data_quality(Alumnus.objects.all())
+        self.assertEqual(quality["duplicate_names"][0]["total"], 2)
+        self.assertEqual(quality["open_followups"], 1)
+
+    def test_quality_scopes_roll_duplicates_by_batch_and_program(self):
+        Alumnus.objects.create(
+            first_name="One", last_name="Student", batch="078",
+            field_of_study=FIELD_COMPUTER, class_roll_no="078BCT047",
+        )
+        Alumnus.objects.create(
+            first_name="Another", last_name="Batch", batch="079",
+            field_of_study=FIELD_COMPUTER, class_roll_no="047",
+        )
+        Alumnus.objects.create(
+            first_name="Same", last_name="Cohort", batch="078",
+            field_of_study=FIELD_COMPUTER, class_roll_no="078BCT047",
+        )
+        quality = build_data_quality(Alumnus.objects.all())
+        self.assertEqual(len(quality["duplicate_rolls"]), 1)
+        self.assertEqual(quality["duplicate_rolls"][0]["batch"], "078")
+        self.assertEqual(quality["duplicate_rolls"][0]["roll_number"], "47")
+
+
+class WorkflowLogicTests(TestCase):
+    def test_profile_completeness_lists_missing_fields(self):
+        alumnus = Alumnus.objects.create(first_name="Profile", last_name="Test")
+        result = profile_completeness(alumnus)
+        self.assertEqual(result["filled"], 0)
+        self.assertEqual(result["percent"], 0)
+        self.assertIn("current_country", {item["field"] for item in result["missing"]})
+
+    def test_claim_review_history_is_persistent(self):
+        alumnus = Alumnus.objects.create(first_name="Claim", last_name="Test")
+        review = ClaimReview.objects.create(alumnus=alumnus, status="pending")
+        self.assertEqual(alumnus.claim_reviews.get().pk, review.pk)
+
+    def test_editor_role_is_narrower_than_report_role(self):
+        user = User.objects.create_user(
+            username="workflow-editor", email="workflow@example.com", password="ValidPass1!"
+        )
+        report_group = Group.objects.create(name="Department Staff")
+        report_group.user_set.add(user)
+        self.assertTrue(is_department_staff(user))
+        self.assertFalse(is_department_data_editor(user))
+        editor_group = Group.objects.create(name="Alumni Data Editors")
+        editor_group.user_set.add(user)
+        self.assertTrue(is_department_data_editor(user))
+
+
+class StudentFeatureLogicTests(TestCase):
+    def setUp(self):
+        self.mentor_user = User.objects.create_user(
+            username="mentor-student", email="mentor@example.com", password="ValidPass1!"
+        )
+        self.mentee_user = User.objects.create_user(
+            username="mentee-student", email="mentee@example.com", password="ValidPass1!"
+        )
+        self.mentor = Alumnus.objects.create(
+            first_name="Experienced", last_name="Alumnus", batch="070",
+            field_of_study=FIELD_COMPUTER, class_roll_no="070BCT001",
+            user_account=self.mentor_user, is_public=True,
+        )
+        self.mentee = Alumnus.objects.create(
+            first_name="Current", last_name="Student", batch="080",
+            field_of_study=FIELD_COMPUTER, class_roll_no="080BCT002",
+            user_account=self.mentee_user, is_public=True,
+        )
+
+    def test_job_requires_a_reliable_application_route(self):
+        form = JobPostingForm(
+            data={
+                "title": "Intern",
+                "organization": "DOECE Labs",
+                "description": "Work with the team.",
+                "location": "Kathmandu",
+                "employment_type": "internship",
+                "application_url": "",
+                "application_email": "",
+                "deadline": "",
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertTrue(form.non_field_errors())
+
+    def test_mentorship_request_links_mentee_and_mentor(self):
+        profile = MentorshipProfile.objects.create(
+            alumnus=self.mentor, expertise="Career planning", max_mentees=2
+        )
+        request_record = MentorshipRequest.objects.create(
+            mentor=self.mentor, mentee=self.mentee, message="I would appreciate guidance."
+        )
+        self.assertTrue(profile.is_available)
+        self.assertEqual(request_record.mentor, self.mentor)
+        self.assertEqual(request_record.mentee, self.mentee)
+
+    def test_event_registration_is_unique_per_attendee(self):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        event = AlumniEvent.objects.create(
+            organizer=self.mentor_user,
+            title="Batch reunion",
+            description="Meet the batch.",
+            starts_at=timezone.now() + timedelta(days=2),
+            status="published",
+        )
+        EventRegistration.objects.create(event=event, attendee=self.mentee_user)
+        with self.assertRaises(Exception):
+            EventRegistration.objects.create(event=event, attendee=self.mentee_user)
+
+    def test_contact_request_does_not_share_details_before_acceptance(self):
+        contact = ContactRequest.objects.create(
+            sender=self.mentee_user,
+            recipient=self.mentor_user,
+            message="Could I ask about your career path?",
+        )
+        self.assertEqual(contact.status, "pending")
+        self.assertEqual(contact.recipient, self.mentor_user)

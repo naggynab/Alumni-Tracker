@@ -1,0 +1,8 @@
+{% extends "base_app.html" %}
+{% block title %}Request Mentorship{% endblock %}
+{% block content %}
+<h1 class="page-title">Request Mentorship</h1>
+<p class="page-sub">Send a short introduction to {{ mentor.full_name }}. Your contact details remain private until acceptance.</p>
+<section class="panel"><p><strong>{{ profile.headline|default:"Alumni mentor" }}</strong></p><p class="muted">{{ profile.expertise|default:"Open to sharing experience." }}</p></section>
+<form class="panel workflow-form" method="post">{% csrf_token %}{% for field in form %}<div class="rf-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}<div class="app-actions"><a class="btn btn-ghost" href="{% url 'directory:mentorship' %}">Cancel</a><button class="btn btn-primary" type="submit">Send request</button></div></form>
+{% endblock %}

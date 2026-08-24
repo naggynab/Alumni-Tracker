@@ -1,0 +1,23 @@
+{% extends "base_app.html" %}
+{% load humanize %}
+{% block title %}Profile Completeness{% endblock %}
+{% block content %}
+<h1 class="page-title">Profile Completeness</h1>
+<p class="page-sub">A private checklist for keeping your alumni record useful and current.</p>
+{% if completeness %}
+<section class="panel completeness-panel">
+    <div class="panel-title">{{ completeness.percent }}% complete</div>
+    <div class="completeness-track" aria-label="{{ completeness.percent }} percent complete"><span style="width:{{ completeness.percent }}%"></span></div>
+    <p class="muted">{{ completeness.filled }} of {{ completeness.total }} recommended fields are filled.</p>
+    {% if completeness.missing %}
+    <h2 class="report-subtitle">Still missing</h2>
+    <ul class="quality-list">
+        {% for item in completeness.missing %}<li>{{ item.label }}</li>{% endfor %}
+    </ul>
+    {% else %}<p>Your profile has all recommended fields.</p>{% endif %}
+    <div class="app-actions"><a class="btn btn-primary" href="{% url 'accounts:edit-profile' %}">Update profile</a></div>
+</section>
+{% else %}
+<section class="panel"><p>You do not have a linked alumni record yet.</p><a class="btn btn-primary" href="{% url 'accounts:claim-record' %}">Claim your record</a></section>
+{% endif %}
+{% endblock %}

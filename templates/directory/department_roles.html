@@ -1,0 +1,8 @@
+{% extends "base_app.html" %}
+{% block title %}Department Roles{% endblock %}
+{% block content %}
+<h1 class="page-title">Department Roles</h1>
+<p class="page-sub">Grant least-privilege staff access. The same operation is available through the management command.</p>
+<form class="panel report-filters" method="post">{% csrf_token %}<div class="rf-fields"><div class="rf-field"><label for="role-email">User email</label><input id="role-email" name="email" type="email" required></div><div class="rf-field"><label for="role-name">Role</label><select id="role-name" name="role"><option value="report">Report viewer</option><option value="editor">Data editor</option><option value="admin">Department admin</option></select></div><div class="rf-field"><label for="role-action">Action</label><select id="role-action" name="action"><option value="add">Grant</option><option value="remove">Revoke</option></select></div></div><div class="rf-actions"><button class="btn btn-primary" type="submit">Save role</button></div></form>
+<div class="stat-grid">{% for membership in memberships %}<section class="panel stat-panel"><div class="panel-title">{{ membership.name }}</div><p class="muted">{{ membership.label }}</p>{% if membership.users %}<ul class="quality-list">{% for member in membership.users %}<li>{{ member.email|default:member.username }}</li>{% endfor %}</ul>{% else %}<p class="bar-empty">No members.</p>{% endif %}</section>{% endfor %}</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "base_app.html" %}
+{% block title %}Saved searches{% endblock %}
+{% block content %}
+<h1 class="page-title">Saved searches</h1><p class="page-sub">Keep useful alumni directory filters for one-click access.</p>
+<section class="panel workflow-form"><div class="panel-title">Save a search</div><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Save search</button></form></section>
+<section class="panel"><div class="panel-title">Your saved searches</div><ul class="workflow-list">{% for search in searches %}<li><div><strong>{{ search.name }}</strong><br><span>{{ search.query_string|default:"All alumni" }}</span></div><span class="service-actions"><a class="btn btn-secondary" href="{{ search.use_url }}">Open</a><form method="post" action="{% url 'directory:saved-search-delete' search.pk %}">{% csrf_token %}<button class="btn btn-secondary">Delete</button></form></span></li>{% empty %}<li>No saved searches yet.</li>{% endfor %}</ul></section>
+{% endblock %}

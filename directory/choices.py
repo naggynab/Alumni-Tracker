@@ -7,6 +7,9 @@ clean set of canonical fields of study so the "field of study" filter is
 usable, while keeping the original text on the record for reference.
 """
 
+import re
+import unicodedata
+
 # Canonical fields of study used for filtering and display.
 FIELD_COMPUTER = "computer"
 FIELD_ELECTRONICS = "electronics"
@@ -140,3 +143,83 @@ def normalize_gender(raw):
     if text in {"other", "3"}:
         return "Other"
     return ""
+
+
+def _canonical_text(raw):
+    """Return a stable lowercase key while preserving words for display maps."""
+    if not raw:
+        return ""
+    text = unicodedata.normalize("NFKC", str(raw)).strip().lower()
+    text = text.replace("&", " and ")
+    text = re.sub(r"[.,;:/()\[\]{}'\"_-]+", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _normalize_organization(raw):
+    """Collapse common institution spellings into a comparable key."""
+    text = _canonical_text(raw)
+    if not text:
+        return ""
+
+    text = re.sub(r"\buniv\b", "university", text)
+    text = re.sub(r"\binst\b", "institute", text)
+    text = re.sub(r"\bi\s*o\s*e\b", "institute of engineering", text)
+    text = re.sub(r"\ba\s*i\s*t\b", "asian institute of technology", text)
+    text = re.sub(r"\bi\s*i\s*t\b", "indian institute of technology", text)
+
+    # These refer to one campus even when the source reverses the words.
+    if (
+        "institute of engineering" in text
+        and "pulchowk" in text
+    ) or ("pulchowk" in text and "institute of engineering" in text):
+        return "institute of engineering"
+
+    text = re.sub(r"\b(?:pulchowk\s+)?campus\b", "", text)
+    text = re.sub(r"\s+", " ", text).strip(" ,")
+    return text
+
+
+def normalize_institution(raw):
+    """Return a canonical key for higher-study institutions.
+
+    Raw institution text remains on the record so the most common original
+    spelling can be shown in dropdowns and reports.
+    """
+    return _normalize_organization(raw)
+
+
+def normalize_employer(raw):
+    """Return a canonical key for employer names and common abbreviations."""
+    return _normalize_organization(raw)
+
+
+def normalize_city(raw):
+    """Return a punctuation- and case-insensitive key for current cities."""
+    text = _canonical_text(raw)
+    return text.title() if text else ""
+
+
+def normalize_roll_serial(value):
+    """Extract the comparable serial from bare or full roll-number formats.
+
+    A serial is not globally unique: batch and program remain part of the
+    identity. This helper only makes ``080BCT047`` and ``047`` comparable.
+    """
+    raw = re.sub(r"\s+", "", str(value or "").upper())
+    if not raw:
+        return ""
+    match = re.search(r"(\d+)$", raw)
+    if match:
+        return str(int(match.group(1)))
+    return raw
+
+
+def normalize_roll_scope(value, field_of_study="", department_raw=""):
+    """Return the program scope encoded in a roll number when available."""
+    raw = re.sub(r"\s+", "", str(value or "").upper())
+    match = re.search(r"\d{3,4}([A-Z]+)\d+$", raw)
+    if match and match.group(1):
+        return match.group(1)
+    department = _canonical_text(department_raw)
+    return department or str(field_of_study or "").strip().lower()

@@ -1,11 +1,20 @@
+import hashlib
+import secrets
+from datetime import timedelta
+
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mail
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.generic import FormView
+from allauth.account.views import LoginView
 
-from directory.models import Alumnus
+from directory.models import Alumnus, ClaimReview, TwoFactorCode, TwoFactorSetting
 
 from .forms import (
     AlumnusProfileForm,
@@ -13,6 +22,47 @@ from .forms import (
     RegistrationForm,
     RollNumberPasswordResetForm,
 )
+
+
+def _code_hash(value):
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+class SecureLoginView(LoginView):
+    """Route enabled accounts through a short email-code challenge."""
+
+    def form_valid(self, form):
+        user = getattr(form, "user", None)
+        setting = TwoFactorSetting.objects.filter(user=user, enabled=True).first()
+        if not setting:
+            return super().form_valid(form)
+        code = f"{secrets.randbelow(1000000):06d}"
+        TwoFactorCode.objects.filter(user=user, purpose="login", used_at__isnull=True).update(used_at=timezone.now())
+        TwoFactorCode.objects.create(user=user, purpose="login", code_hash=_code_hash(code), expires_at=timezone.now() + timedelta(minutes=10))
+        send_mail("DOECE Alumni Tracker login verification", f"Your login verification code is {code}. It expires in 10 minutes.", None, [user.email])
+        self.request.session["pending_2fa_user_id"] = user.pk
+        self.request.session["pending_2fa_redirect"] = self.get_success_url()
+        messages.info(self.request, "Enter the verification code sent to your email.")
+        return redirect("account_login_2fa")
+
+
+def login_2fa(request):
+    user_id = request.session.get("pending_2fa_user_id")
+    if not user_id:
+        return redirect("account_login")
+    if request.method == "POST":
+        code = (request.POST.get("code") or "").strip()
+        record = TwoFactorCode.objects.filter(user_id=user_id, purpose="login", used_at__isnull=True, expires_at__gte=timezone.now()).first()
+        if record and secrets.compare_digest(record.code_hash, _code_hash(code)):
+            record.used_at = timezone.now()
+            record.save(update_fields=["used_at"])
+            user = get_user_model().objects.get(pk=user_id)
+            login(request, user, backend="accounts.authentication.RollNumberBackend")
+            destination = request.session.pop("pending_2fa_redirect", reverse("directory:my-profile"))
+            request.session.pop("pending_2fa_user_id", None)
+            return redirect(destination)
+        messages.error(request, "That code is invalid or expired.")
+    return render(request, "account/login_2fa.html")
 
 
 class RollNumberPasswordResetView(FormView):
@@ -65,6 +115,12 @@ def claim_record(request):
                 if not match.email and request.user.email:
                     match.email = request.user.email
                 match.save(update_fields=["user_account", "email", "date_modified"])
+                ClaimReview.objects.create(
+                    alumnus=match,
+                    claimant=request.user,
+                    status="pending",
+                    note="Created when the record was claimed.",
+                )
                 messages.success(request, "Record claimed. You can now keep it up to date.")
                 return redirect("directory:my-profile")
     else:

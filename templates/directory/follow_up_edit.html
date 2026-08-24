@@ -1,0 +1,7 @@
+{% extends "base_app.html" %}
+{% block title %}Edit Follow-up{% endblock %}
+{% block content %}
+<h1 class="page-title">Edit Follow-up</h1>
+<p class="page-sub">{{ followup.alumnus.full_name }} · Batch {{ followup.alumnus.batch }} · {{ followup.alumnus.class_roll_no }}</p>
+<form class="panel workflow-form" method="post">{% csrf_token %}{% for field in form %}<div class="rf-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}{{ field.errors }}{% endif %}</div>{% endfor %}<div class="app-actions"><a class="btn btn-ghost" href="{% url 'directory:follow-up-queue' %}">Cancel</a><button class="btn btn-primary" type="submit">Save follow-up</button></div></form>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base_app.html" %}
+{% load humanize %}
+{% block title %}Compare Cohorts{% endblock %}
+{% block content %}
+<h1 class="page-title">Compare Cohorts</h1>
+<p class="page-sub">Compare the same aggregate measures across two batches or programs.</p>
+<form class="panel report-filters" method="get"><div class="rf-fields">{% for field in form %}<div class="rf-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}</div>{% endfor %}</div><div class="rf-actions"><button class="btn btn-primary" type="submit">Compare</button></div></form>
+{% if comparison %}
+<section class="panel stat-panel"><div class="panel-title">{{ comparison.label_a }} vs {{ comparison.label_b }}</div><div class="chart-scroll"><table class="report-table comparison-table"><thead><tr><th>Measure</th><th>{{ comparison.label_a }}</th><th>{{ comparison.label_b }}</th><th>Change</th></tr></thead><tbody>{% for row in comparison.rows %}<tr><td>{{ row.label }}</td><td>{{ row.a|intcomma }}</td><td>{{ row.b|intcomma }}</td><td>{% if row.change > 0 %}+{% endif %}{{ row.change|intcomma }}</td></tr>{% endfor %}</tbody></table></div></section>
+{% else %}<section class="panel"><p class="muted">Choose two cohorts to see the comparison.</p></section>{% endif %}
+{% endblock %}

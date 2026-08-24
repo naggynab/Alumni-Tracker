@@ -1,0 +1,154 @@
+{% extends "base_app.html" %}
+{% load humanize %}
+{% block title %}Department Report{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Department Report</h1>
+<p class="page-sub">Where are they now? Aggregate alumni figures for DOECE officers.</p>
+
+<div class="panel report-note">
+    <strong>Internal departmental use.</strong>
+    These figures include unclaimed and private records so the department can
+    plan outreach. They contain aggregate counts only.
+    <a class="btn btn-light report-download" href="{% url 'directory:department-report-export' 'full' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">Download full CSV</a>
+</div>
+
+<div class="panel report-tools">
+    <strong>Department tools</strong>
+    <a class="btn btn-light" href="{% url 'directory:department-data-quality' %}">Data quality</a>
+    <a class="btn btn-light" href="{% url 'directory:department-report-compare' %}">Compare cohorts</a>
+    <a class="btn btn-light" href="{% url 'directory:follow-up-queue' %}">Follow-up queue</a>
+    <a class="btn btn-light" href="{% url 'directory:department-verification' %}">Claim verification</a>
+    {% if can_edit_workflows %}<a class="btn btn-light" href="{% url 'directory:correction-review-queue' %}">Correction requests</a><a class="btn btn-light" href="{% url 'directory:community-moderation' %}">Community moderation</a>{% endif %}
+    {% if can_manage_department_roles %}<a class="btn btn-light" href="{% url 'directory:department-roles' %}">Role management</a>{% endif %}
+</div>
+
+<form class="panel report-filters" method="get">
+    <div class="rf-fields">
+        {% for field in form %}
+        <div class="rf-field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}{{ field.errors }}{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    <div class="rf-actions">
+        <button class="btn btn-primary" type="submit">Apply</button>
+        {% if is_filtered %}
+        <a class="btn btn-ghost" href="{% url 'directory:department-report' %}">Clear</a>
+        {% endif %}
+    </div>
+</form>
+
+<p class="report-selection">
+    Showing <b>{{ selection }}</b>
+    {% if is_filtered %}<span>&mdash; {{ report.total|intcomma }} of {{ campus_total|intcomma }} records on file</span>{% endif %}
+</p>
+
+<div class="kpi-grid">
+    <div class="kpi"><span class="k-label">Alumni on record</span><span class="k-val">{{ report.total|intcomma }}</span><span class="k-sub">{{ report.batches_represented }} batches represented</span></div>
+    <div class="kpi"><span class="k-label">Countries represented</span><span class="k-val">{{ report.countries_represented|intcomma }}</span><span class="k-sub">by current residence</span></div>
+    <div class="kpi"><span class="k-label">Currently in Nepal</span><span class="k-val">{{ report.in_nepal_percent }}%</span><span class="k-sub">{{ report.in_nepal|intcomma }} records</span></div>
+    <div class="kpi"><span class="k-label">Currently abroad</span><span class="k-val">{{ report.abroad_percent }}%</span><span class="k-sub">{{ report.abroad|intcomma }} records</span></div>
+    <div class="kpi"><span class="k-label">Claimed accounts</span><span class="k-val">{{ report.registered|intcomma }}</span><span class="k-sub">verified tracker records</span></div>
+</div>
+
+<section class="panel stat-panel">
+    <div class="panel-title">Where they live now</div>
+    <div class="location-stack" role="img" aria-label="{{ report.in_nepal_percent }} percent in Nepal, {{ report.abroad_percent }} percent abroad, {{ report.unknown_percent }} percent not recorded">
+        <span class="location-nepal" style="width:{{ report.in_nepal_percent }}%">Nepal {{ report.in_nepal_percent }}%</span>
+        <span class="location-abroad" style="width:{{ report.abroad_percent }}%">Abroad {{ report.abroad_percent }}%</span>
+        <span class="location-unknown" style="width:{{ report.unknown_percent }}%">Unknown {{ report.unknown_percent }}%</span>
+    </div>
+    <div class="legend-line"><span><i class="legend-swatch location-nepal"></i>Nepal</span><span><i class="legend-swatch location-abroad"></i>Abroad</span><span><i class="legend-swatch location-unknown"></i>Not recorded</span></div>
+</section>
+
+<div class="stat-grid">
+    <section class="panel stat-panel">
+        <div class="panel-title">Top countries abroad <a class="report-csv" href="{% url 'directory:department-report-export' 'country' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">CSV</a></div>
+        {% include "directory/_coverage_note.html" with coverage=report.coverage.current_location %}
+        {% include "directory/_stat_bars.html" with rows=report.by_country %}
+        <div class="chart-scroll" role="img" aria-label="Ranked horizontal bars for top countries abroad">
+            <svg class="report-chart country-chart" viewBox="0 0 760 390" role="img" aria-labelledby="country-chart-title">
+                <title id="country-chart-title">Top countries abroad</title>
+                <line x1="190" y1="16" x2="190" y2="370" stroke="var(--line-2)" />
+                {% for row in report.by_country %}
+                <text x="180" y="{{ row.chart_y }}" text-anchor="end">{{ row.label|truncatechars:24 }}</text>
+                <rect x="200" y="{{ row.chart_y|add:"-12" }}" width="{{ row.bar|floatformat:0 }}%" height="14" fill="var(--navy)" />
+                <text x="710" y="{{ row.chart_y }}">{{ row.total }} ({{ row.share }}%)</text>
+        {% endfor %}
+            </svg>
+        </div>
+        <details class="report-details"><summary>Show country data table</summary><table class="report-table"><thead><tr><th>Country</th><th>Alumni</th><th>Share of abroad</th></tr></thead><tbody>{% for row in report.by_country %}<tr><td>{{ row.label }}</td><td>{{ row.total }}</td><td>{{ row.share }}%</td></tr>{% endfor %}</tbody></table></details>
+        <a class="report-table-link" href="{% url 'directory:department-report-export' 'country' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">Download country breakdown</a>
+    </section>
+
+    <section class="panel stat-panel">
+        <div class="panel-title">Top cities within Nepal <a class="report-csv" href="{% url 'directory:department-report-export' 'city' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">CSV</a></div>
+        {% include "directory/_stat_bars.html" with rows=report.by_city %}
+        {% include "directory/_coverage_note.html" with coverage=report.coverage.current_city %}
+    </section>
+
+    <section class="panel stat-panel">
+        <div class="panel-title">Permanent districts <a class="report-csv" href="{% url 'directory:department-report-export' 'district' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">CSV</a></div>
+        {% include "directory/_stat_bars.html" with rows=report.by_district %}
+    </section>
+
+    <section class="panel stat-panel">
+        <div class="panel-title">By program <a class="report-csv" href="{% url 'directory:department-report-export' 'field' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">CSV</a></div>
+        {% include "directory/_stat_bars.html" with rows=report.by_field %}
+        <details class="report-details"><summary>Show Nepal / abroad split</summary><table class="report-table"><thead><tr><th>Program</th><th>Total</th><th>Nepal</th><th>Abroad</th><th>Unknown</th></tr></thead><tbody>{% for row in report.by_field %}<tr><td>{{ row.label }}</td><td>{{ row.total }}</td><td>{{ row.in_nepal }}</td><td>{{ row.abroad }}</td><td>{{ row.unknown }}</td></tr>{% endfor %}</tbody></table></details>
+    </section>
+</div>
+
+<section class="panel stat-panel">
+    <div class="panel-title">Batch trends: cohort size and abroad share <a class="report-csv" href="{% url 'directory:department-report-export' 'batch' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">CSV</a></div>
+    <p class="muted">Navy columns show alumni count. The gold line shows the percentage of each batch currently living abroad.</p>
+    <div class="chart-scroll">
+        <svg class="report-chart batch-chart" viewBox="0 0 900 280" role="img" aria-labelledby="batch-chart-title">
+            <title id="batch-chart-title">Alumni count and abroad share by batch</title>
+            <line x1="30" y1="210" x2="875" y2="210" stroke="var(--line-2)" />
+            {% for row in report.by_batch %}
+            <rect x="{{ row.chart_x }}" y="{{ row.chart_total_y }}" width="14" height="{{ row.chart_total_height }}" fill="var(--navy)" />
+            <circle cx="{{ row.chart_x|add:"7" }}" cy="{{ row.chart_share_y }}" r="3" fill="var(--accent-gold)" />
+            <text x="{{ row.chart_x|add:"7" }}" y="228" text-anchor="middle">{{ row.label }}</text>
+            <text x="{{ row.chart_x|add:"7" }}" y="{{ row.chart_share_y|add:"-7" }}" text-anchor="middle" class="chart-value">{{ row.abroad_share }}%</text>
+            {% endfor %}
+        </svg>
+    </div>
+    <details class="report-details"><summary>Show batch data table</summary><table class="report-table"><thead><tr><th>Batch</th><th>Graduation</th><th>Total</th><th>Abroad</th><th>Abroad share</th></tr></thead><tbody>{% for row in report.by_batch %}<tr><td>{{ row.label }}</td><td>{{ row.sub }}</td><td>{{ row.total }}</td><td>{{ row.abroad }}</td><td>{{ row.abroad_share }}%</td></tr>{% endfor %}</tbody></table></details>
+</section>
+
+<div class="stat-grid">
+    <section class="panel stat-panel">
+        <div class="panel-title">Careers <a class="report-csv" href="{% url 'directory:department-report-export' 'employer' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">CSV</a></div>
+        {% include "directory/_coverage_note.html" with coverage=report.coverage.employer %}
+        <h3 class="report-subtitle">Top employers</h3>
+        {% include "directory/_stat_bars.html" with rows=report.by_employer %}
+        <h3 class="report-subtitle">Employment status <a class="report-csv" href="{% url 'directory:department-report-export' 'employment' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">CSV</a></h3>
+        {% include "directory/_stat_bars.html" with rows=report.by_employment %}
+        {% include "directory/_coverage_note.html" with coverage=report.coverage.employment_status %}
+    </section>
+
+    <section class="panel stat-panel">
+        <div class="panel-title">Higher studies <a class="report-csv" href="{% url 'directory:department-report-export' 'study_institution' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">CSV</a></div>
+        {% include "directory/_coverage_note.html" with coverage=report.coverage.higher_studies %}
+        <h3 class="report-subtitle">Destination countries</h3>
+        {% include "directory/_stat_bars.html" with rows=report.by_study_country %}
+        <h3 class="report-subtitle">Institutions</h3>
+        {% include "directory/_stat_bars.html" with rows=report.by_study_institution %}
+    </section>
+
+    <section class="panel stat-panel">
+        <div class="panel-title">Tracker adoption <a class="report-csv" href="{% url 'directory:department-report-export' 'adoption' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">CSV</a></div>
+        <ul class="bar-list">{% for row in report.adoption %}<li class="bar-row"><span class="bar-label">Batch {{ row.batch }}<em>{{ row.claimed }} claimed · {{ row.unclaimed }} unclaimed</em></span><span class="bar-track"><span class="bar-fill" style="width:{{ row.claimed_share }}%"></span></span><span class="bar-val">{{ row.claimed_share }}%</span></li>{% empty %}<li class="bar-empty">No batch records.</li>{% endfor %}</ul>
+    </section>
+
+    <section class="panel stat-panel">
+        <div class="panel-title">Records missing key data <a class="report-csv" href="{% url 'directory:department-report-export' 'missing_data' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">CSV</a></div>
+        {% include "directory/_stat_bars.html" with rows=report.missing_data %}
+        <p class="coverage-note">These gaps identify where officer outreach can improve future reporting.</p>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base_app.html" %}
+{% block title %}{{ group.name }}{% endblock %}
+{% block content %}
+<h1 class="page-title">{{ group.name }}</h1><p class="page-sub">{{ group.description }}</p>
+<div class="service-actions" style="margin-bottom:22px"><form method="post">{% csrf_token %}<input type="hidden" name="action" value="{% if membership %}leave{% else %}join{% endif %}"><button class="btn btn-primary">{% if membership %}Leave group{% else %}Join group{% endif %}</button></form><a class="btn btn-secondary" href="{% url 'directory:community-groups' %}">All groups</a></div>
+{% if membership %}<section class="panel workflow-form"><div class="panel-title">Share with the group</div><form method="post" action="{% url 'directory:community-group-post' group.slug %}">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Post update</button></form></section>{% endif %}
+<section class="panel"><div class="panel-title">Recent posts</div><ul class="workflow-list">{% for post in posts %}<li><div><strong>{{ post.author.alumnus_profile.full_name|default:"Community member" }}</strong><br><span>{{ post.body|linebreaksbr }}</span></div><span>{{ post.created_at|date:"M j, Y g:i A" }}</span></li>{% empty %}<li>No posts yet.</li>{% endfor %}</ul></section>
+{% endblock %}

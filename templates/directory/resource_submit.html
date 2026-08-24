@@ -1,0 +1,3 @@
+{% extends "base_app.html" %}
+{% block title %}Suggest a resource{% endblock %}
+{% block content %}<h1 class="page-title">Suggest a resource</h1><p class="page-sub">A staff member will check the link before publication.</p><section class="panel workflow-form"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Submit resource</button> <a class="btn btn-secondary" href="{% url 'directory:resources' %}">Cancel</a></form></section>{% endblock %}

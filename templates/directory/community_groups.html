@@ -1,0 +1,7 @@
+{% extends "base_app.html" %}
+{% block title %}Communities{% endblock %}
+{% block content %}
+<h1 class="page-title">Batch &amp; community groups</h1><p class="page-sub">Join classmates and interest groups without exposing private contact details.</p>
+<section class="panel workflow-form"><div class="panel-title">Create a group</div><form method="post" action="{% url 'directory:community-group-create' %}">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Create group</button></form></section>
+<div class="service-grid">{% for group in groups %}<section class="panel service-card"><div class="panel-title">{{ group.name }}</div><p class="muted">{{ group.description|default:"A community space for alumni." }}</p><p class="service-meta">{{ group.member_count }} member{{ group.member_count|pluralize }}{% if group.batch %} · Batch {{ group.batch }}{% endif %}</p><a class="btn btn-primary" href="{% url 'directory:community-group' group.slug %}">{% if group.id in mine %}Open group{% else %}View group{% endif %}</a></section>{% empty %}<section class="panel"><p>No groups are available yet.</p></section>{% endfor %}</div>
+{% endblock %}

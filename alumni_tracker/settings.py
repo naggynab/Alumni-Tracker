@@ -14,6 +14,8 @@ import dj_database_url
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
 
 # Load environment variables from a local .env file if present.
 load_dotenv(BASE_DIR / ".env")
@@ -43,6 +45,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+    "django.contrib.humanize",
     # Third party
     "django_filters",
     "django_countries",
@@ -59,10 +62,12 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "directory.middleware.ActivityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -80,6 +85,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "directory.context_processors.department_access",
             ],
         },
     },
@@ -112,6 +118,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # --- Internationalization ---------------------------------------------------
 LANGUAGE_CODE = "en-us"
+LANGUAGES = (("en", "English"), ("ne", "नेपाली"))
 TIME_ZONE = "Asia/Kathmandu"
 USE_I18N = True
 USE_TZ = True
@@ -158,6 +165,60 @@ ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_SESSION_REMEMBER = True
 # Throttle brute-force login attempts (the case study asked for this).
 ACCOUNT_RATE_LIMITS = {"login_failed": "5/5m"}
+
+# --- Department report access -----------------------------------------------
+# The aggregate report is restricted to department staff. Grant access by
+# listing exact addresses, by trusting a whole email domain, or by adding the
+# account to the Django group named below (manageable from the admin).
+DEPARTMENT_EMAILS = [
+    e.strip().lower()
+    for e in os.environ.get("DEPARTMENT_EMAILS", "").split(",")
+    if e.strip()
+]
+DEPARTMENT_EMAIL_DOMAINS = [
+    d.strip().lower().lstrip("@")
+    for d in os.environ.get(
+        "DEPARTMENT_EMAIL_DOMAINS", ""
+    ).split(",")
+    if d.strip()
+]
+DEPARTMENT_GROUP_NAME = os.environ.get("DEPARTMENT_GROUP_NAME", "Department Staff")
+DEPARTMENT_DATA_EDITOR_GROUP = os.environ.get(
+    "DEPARTMENT_DATA_EDITOR_GROUP", "Alumni Data Editors"
+)
+DEPARTMENT_ADMIN_GROUP = os.environ.get(
+    "DEPARTMENT_ADMIN_GROUP", "Alumni Administrators"
+)
+
+# Department reports contain campus-wide aggregate information, including
+# unclaimed and private records. Keep a separate audit trail for report views
+# and aggregate exports.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "department_audit_file": {
+            "class": "logging.FileHandler",
+            "filename": str(LOG_DIR / "department_audit.log"),
+            "formatter": "department_audit",
+            "level": "INFO",
+        },
+    },
+    "formatters": {
+        "department_audit": {
+            "format": "{asctime} {levelname} {message}",
+            "style": "{",
+        },
+    },
+    "loggers": {
+        "directory.audit": {
+            "handlers": ["department_audit_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
+
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {

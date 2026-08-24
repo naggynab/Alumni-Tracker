@@ -5,7 +5,7 @@
 {% block content %}
 <div class="section" style="padding-top:36px">
 <div class="panel detail-card" style="margin:0 auto">
-    <p style="margin-top:0"><a href="{% url 'directory:alumni-list' %}">&larr; Back to yearbook</a></p>
+    <p style="margin-top:0"><a href="{% url 'directory:alumni-list' %}">&larr; Back to yearbook</a>{% if user.is_authenticated %}<form method="post" action="{% url 'directory:favorite-toggle' alumnus.pk %}" style="display:inline;margin-left:18px">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-secondary" type="submit">{% if is_favorite %}Remove favorite{% else %}Save favorite{% endif %}</button></form>{% endif %}</p>
 
     <div style="display:flex;gap:20px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
         <img src="{% static 'pictures/default_user.png' %}" alt=""

@@ -1,0 +1,7 @@
+{% extends "base_app.html" %}
+{% block title %}Submit Opportunity{% endblock %}
+{% block content %}
+<h1 class="page-title">Submit a Job or Internship</h1>
+<p class="page-sub">Submissions are reviewed before publication. Include a reliable application route.</p>
+<form class="panel workflow-form" method="post">{% csrf_token %}{% for error in form.non_field_errors %}<p class="errorlist">{{ error }}</p>{% endfor %}{% for field in form %}<div class="rf-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}<div class="app-actions"><a class="btn btn-ghost" href="{% url 'directory:job-board' %}">Cancel</a><button class="btn btn-primary" type="submit">Submit opportunity</button></div></form>
+{% endblock %}

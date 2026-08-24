@@ -1,0 +1,3 @@
+{% extends "base_app.html" %}
+{% block title %}Share a story{% endblock %}
+{% block content %}<h1 class="page-title">Share your story</h1><p class="page-sub">Submissions are reviewed before they are published.</p><section class="panel workflow-form"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Submit for review</button> <a class="btn btn-secondary" href="{% url 'directory:stories' %}">Cancel</a></form></section>{% endblock %}

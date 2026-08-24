@@ -1,0 +1,8 @@
+{% extends "base_app.html" %}
+{% block title %}Correction Review{% endblock %}
+{% block content %}
+<h1 class="page-title">Correction Review</h1>
+<p class="page-sub">Review student-submitted changes before they alter verified records.</p>
+<div class="queue-tabs">{% for code,label in status_choices %}<a class="btn {% if status == code %}btn-primary{% else %}btn-light{% endif %}" href="?status={{ code }}">{{ label }}</a>{% endfor %}</div>
+<section class="panel stat-panel">{% if requests %}<table class="report-table"><thead><tr><th>Alumnus</th><th>Field</th><th>Current</th><th>Proposed</th><th>Action</th></tr></thead><tbody>{% for correction in requests %}<tr><td>{{ correction.alumnus.full_name }}<br><span class="muted">{{ correction.alumnus.batch }} · {{ correction.requester.email|default:"—" }}</span></td><td>{{ correction.field_name|title }}</td><td>{{ correction.current_value|default:"—" }}</td><td>{{ correction.proposed_value }}</td><td>{% if correction.status == 'pending' or correction.status == 'in_review' %}<form class="inline-review" method="post" action="{% url 'directory:correction-review' correction.pk %}">{% csrf_token %}<select name="status"><option value="approved">Approve</option><option value="rejected">Reject</option></select><input name="reviewer_note" placeholder="Optional note"><button class="btn btn-primary" type="submit">Save</button></form>{% else %}{{ correction.get_status_display }}{% endif %}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="bar-empty">No {{ status }} correction requests.</p>{% endif %}</section>
+{% endblock %}

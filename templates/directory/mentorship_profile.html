@@ -1,0 +1,7 @@
+{% extends "base_app.html" %}
+{% block title %}Mentorship Profile{% endblock %}
+{% block content %}
+<h1 class="page-title">My Mentorship Profile</h1>
+<p class="page-sub">Opt in to help other students. Your contact details stay private.</p>
+<form class="panel workflow-form" method="post">{% csrf_token %}{% for field in form %}<div class="rf-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}{% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}</div>{% endfor %}<div class="app-actions"><a class="btn btn-ghost" href="{% url 'directory:mentorship' %}">Cancel</a><button class="btn btn-primary" type="submit">Save mentor profile</button></div></form>
+{% endblock %}

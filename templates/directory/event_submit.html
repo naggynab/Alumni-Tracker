@@ -1,0 +1,7 @@
+{% extends "base_app.html" %}
+{% block title %}Submit Event{% endblock %}
+{% block content %}
+<h1 class="page-title">Submit an Event</h1>
+<p class="page-sub">Reunions, talks, and community events are reviewed before publication.</p>
+<form class="panel workflow-form" method="post">{% csrf_token %}{% for field in form %}<div class="rf-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}<div class="app-actions"><a class="btn btn-ghost" href="{% url 'directory:event-list' %}">Cancel</a><button class="btn btn-primary" type="submit">Submit event</button></div></form>
+{% endblock %}

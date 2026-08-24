@@ -1,0 +1,8 @@
+{% extends "base_app.html" %}
+{% block title %}Claim Verification{% endblock %}
+{% block content %}
+<h1 class="page-title">Claim Verification</h1>
+<p class="page-sub">Review the history of alumni record claims. The public profile and existing claim screens are unchanged.</p>
+<div class="queue-tabs">{% for code,label in status_choices %}<a class="btn {% if status == code %}btn-primary{% else %}btn-light{% endif %}" href="?status={{ code }}">{{ label }}</a>{% endfor %}</div>
+<section class="panel stat-panel">{% if reviews %}<table class="report-table"><thead><tr><th>Alumnus</th><th>Claimant</th><th>Submitted</th><th>Status / action</th></tr></thead><tbody>{% for review in reviews %}<tr><td>{{ review.alumnus.full_name }}<br><span class="muted">Batch {{ review.alumnus.batch }} · {{ review.alumnus.class_roll_no }}</span></td><td>{{ review.claimant.email|default:"—" }}</td><td>{{ review.created_at|date:"Y-m-d H:i" }}</td><td>{% if can_review and review.status == 'pending' %}<form method="post" action="{% url 'directory:department-verification-review' review.pk %}" class="inline-review">{% csrf_token %}<select name="status"><option value="approved">Approve</option><option value="rejected">Reject</option></select><input name="note" placeholder="Optional note"><button class="btn btn-primary" type="submit">Save</button></form>{% else %}{{ review.get_status_display }}{% if review.reviewed_at %}<br><span class="muted">{{ review.reviewed_at|date:"Y-m-d" }}</span>{% endif %}{% endif %}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="bar-empty">No {{ status }} claim reviews.</p>{% endif %}</section>
+{% endblock %}
