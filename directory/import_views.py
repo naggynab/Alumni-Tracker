@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
@@ -24,7 +24,11 @@ _STATE_PATH = Path(tempfile.gettempdir()) / "alumni_import_state.json"
 
 def _authorized(request):
     expected = os.environ.get("ALUMNI_IMPORT_TOKEN", "").strip()
-    supplied = request.headers.get("X-Alumni-Import-Token", "").strip()
+    supplied = (
+        request.headers.get("X-Alumni-Import-Token", "").strip()
+        or request.POST.get("token", "").strip()
+        or request.GET.get("token", "").strip()
+    )
     return bool(expected) and supplied == expected and not settings.DEBUG
 
 
@@ -40,6 +44,25 @@ def _log_tail(path, lines=12):
         return Path(path).read_text(encoding="utf-8", errors="replace").splitlines()[-lines:]
     except OSError:
         return []
+
+
+@require_GET
+def alumni_import_form(request):
+    if not _authorized(request):
+        return HttpResponse("Not found.", status=404)
+    return HttpResponse(
+        """
+        <!doctype html>
+        <title>Private alumni import</title>
+        <form method="post" enctype="multipart/form-data" action="/internal/alumni-import/">
+          <input type="hidden" name="token" value="%s">
+          <label>CSV <input type="file" name="csv" required></label>
+          <label>JSON <input type="file" name="json" required></label>
+          <button type="submit">Start import</button>
+        </form>
+        """
+        % request.GET.get("token", "")
+    )
 
 
 @csrf_exempt
