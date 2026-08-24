@@ -54,6 +54,10 @@ data/               seed data sources (CSV roster + DOECE JSON dump)
 
 ## Getting started
 
+For a full project handoff covering deployment, private production data, environment
+variables, authentication, migration safety, and continuation guidance, read
+[`PROJECT_HANDOFF.md`](PROJECT_HANDOFF.md).
+
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
