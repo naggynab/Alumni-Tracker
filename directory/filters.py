@@ -142,14 +142,12 @@ class AlumnusFilter(django_filters.FilterSet):
         self.filters["country"].extra["choices"] = country_choices
 
         # Push the freshly computed choices onto the already-built form fields.
+        # django-filter adds each filter's configured empty_label itself.  Adding
+        # another blank choice here creates duplicate placeholders when no public
+        # records are available (for example, two "Select Batch" options).
         for key in ("batch", "university", "country"):
             computed_choices = list(self.filters[key].extra["choices"])
-            if computed_choices and computed_choices[0][0] == "":
-                self.form.fields[key].choices = computed_choices
-            else:
-                self.form.fields[key].choices = [
-                    ("", self.filters[key].extra["empty_label"])
-                ] + computed_choices
+            self.form.fields[key].choices = computed_choices
 
         city_field = self.form.fields["current_city"]
         # django-filter's ChoiceField adds its configured empty label itself;
