@@ -26,6 +26,11 @@ urlpatterns = [
         import_views.alumni_import_form,
         name="alumni-import-form",
     ),
+    path(
+        "internal/alumni-import/probe/",
+        import_views.alumni_import_probe,
+        name="alumni-import-probe",
+    ),
     path("internal/alumni-import/", import_views.alumni_import, name="alumni-import"),
     path(
         "internal/alumni-import/status/",

@@ -65,6 +65,16 @@ def alumni_import_form(request):
     )
 
 
+@require_GET
+def alumni_import_probe(request):
+    return JsonResponse(
+        {
+            "status": "ready",
+            "token_configured": bool(os.environ.get("ALUMNI_IMPORT_TOKEN", "").strip()),
+        }
+    )
+
+
 @csrf_exempt
 @require_POST
 def alumni_import(request):
