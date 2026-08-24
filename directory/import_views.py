@@ -29,7 +29,7 @@ def _authorized(request):
         or request.POST.get("token", "").strip()
         or request.GET.get("token", "").strip()
     )
-    return bool(expected) and supplied == expected and not settings.DEBUG
+    return bool(expected) and supplied == expected
 
 
 def _read_state():
