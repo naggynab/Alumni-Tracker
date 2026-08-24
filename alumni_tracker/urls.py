@@ -5,7 +5,6 @@ from django.urls import include, path
 
 from accounts.views import RollNumberPasswordResetView, SecureLoginView, login_2fa
 from directory import api_views
-from directory import import_views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -21,22 +20,6 @@ urlpatterns = [
     path("i18n/", include("django.conf.urls.i18n")),
     path("api/v1/me/", api_views.api_me, name="api-me"),
     path("api/v1/alumni/", api_views.api_alumni, name="api-alumni"),
-    path(
-        "internal/alumni-import/form/",
-        import_views.alumni_import_form,
-        name="alumni-import-form",
-    ),
-    path(
-        "internal/alumni-import/probe/",
-        import_views.alumni_import_probe,
-        name="alumni-import-probe",
-    ),
-    path("internal/alumni-import/", import_views.alumni_import, name="alumni-import"),
-    path(
-        "internal/alumni-import/status/",
-        import_views.alumni_import_status,
-        name="alumni-import-status",
-    ),
     path("", include("directory.urls")),
 ]
 
