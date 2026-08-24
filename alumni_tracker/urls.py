@@ -3,7 +3,12 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from accounts.views import RollNumberPasswordResetView, SecureLoginView, login_2fa
+from accounts.views import (
+    RollNumberPasswordResetView,
+    SecureLoginView,
+    google_login,
+    login_2fa,
+)
 from directory import api_views
 
 urlpatterns = [
@@ -16,6 +21,7 @@ urlpatterns = [
     ),
     path("accounts/login/", SecureLoginView.as_view(), name="account_login"),
     path("accounts/login/2fa/", login_2fa, name="account_login_2fa"),
+    path("accounts/google/login/", google_login, name="google_login"),
     path("accounts/", include("allauth.urls")),
     path("i18n/", include("django.conf.urls.i18n")),
     path("api/v1/me/", api_views.api_me, name="api-me"),

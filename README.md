@@ -193,7 +193,14 @@ does not permit App Passwords, request the campus SMTP relay details instead.
 
 Create OAuth credentials in the Google Cloud Console and set `GOOGLE_CLIENT_ID`
 and `GOOGLE_CLIENT_SECRET` in `.env`. The provider is configured from settings —
-no database `SocialApp` row is required.
+no database `SocialApp` row is required. Add these authorized redirect URIs to
+the Google OAuth client:
+
+- Local: `http://127.0.0.1:8000/accounts/google/login/callback/`
+- Production: `https://alumni-tracker.itprojects.pcampus.edu.np/accounts/google/login/callback/`
+
+If the credentials are absent, the Google button stays hidden and direct visits
+to the Google login URL return a clear setup message instead of a server error.
 
 ## Data
 

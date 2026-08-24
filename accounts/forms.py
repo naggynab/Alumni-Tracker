@@ -227,7 +227,9 @@ class RegistrationForm(forms.Form):
                 date_of_birth_bs=data["date_of_birth"].strip(),
             )
         alumnus.user_account = user
-        alumnus.is_public = False
+        # The supplied dataset is approved for publication, including records
+        # linked during registration.
+        alumnus.is_public = True
         if not alumnus.email:
             alumnus.email = data["email"]
         alumnus.save()

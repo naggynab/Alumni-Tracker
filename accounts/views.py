@@ -2,6 +2,7 @@ import hashlib
 import secrets
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth import login
@@ -44,6 +45,25 @@ class SecureLoginView(LoginView):
         self.request.session["pending_2fa_redirect"] = self.get_success_url()
         messages.info(self.request, "Enter the verification code sent to your email.")
         return redirect("account_login_2fa")
+
+
+def google_login(request):
+    """Start Google sign-in when OAuth credentials are configured.
+
+    Keep an incomplete deployment graceful: the provider button is hidden when
+    credentials are absent, and direct visits receive a useful message instead
+    of an allauth ``SocialApp.DoesNotExist`` server error.
+    """
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+        messages.warning(
+            request,
+            "Google sign-in is not configured yet. Use your college roll number instead.",
+        )
+        return redirect("account_login")
+
+    from allauth.socialaccount.providers.google.views import oauth2_login
+
+    return oauth2_login(request)
 
 
 def login_2fa(request):
@@ -114,8 +134,9 @@ def claim_record(request):
                 match.user_account = request.user
                 if not match.email and request.user.email:
                     match.email = request.user.email
-                # Claiming a pre-loaded record is not consent to publish it.
-                match.is_public = False
+                # The supplied dataset is approved for publication, including
+                # records linked during the claim flow.
+                match.is_public = True
                 match.save(update_fields=["user_account", "email", "is_public", "date_modified"])
                 ClaimReview.objects.create(
                     alumnus=match,
