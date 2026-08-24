@@ -22,11 +22,9 @@
 
     <div class="info-block">
         <div class="info-cols c3">
-            {% if alumnus.class_roll_no %}<div class="info-item"><div class="k">Roll Number</div><div class="v">{{ alumnus.class_roll_no }}</div></div>{% endif %}
             {% if alumnus.department_raw %}<div class="info-item"><div class="k">Department</div><div class="v">{{ alumnus.department_raw }}</div></div>{% endif %}
             {% if alumnus.employer_organization %}<div class="info-item"><div class="k">Works at</div><div class="v">{{ alumnus.employer_organization }}{% if alumnus.job_title %} — {{ alumnus.job_title }}{% endif %}</div></div>{% endif %}
             {% if alumnus.current_city or alumnus.current_country %}<div class="info-item"><div class="k">Currently in</div><div class="v">{{ alumnus.current_city }}{% if alumnus.current_city and alumnus.current_country %}, {% endif %}{% if alumnus.current_country %}{{ alumnus.current_country.name }}{% endif %}</div></div>{% endif %}
-            {% if alumnus.permanent_district or alumnus.permanent_country %}<div class="info-item"><div class="k">Home</div><div class="v">{{ alumnus.permanent_district }}{% if alumnus.permanent_district and alumnus.permanent_country %}, {% endif %}{% if alumnus.permanent_country %}{{ alumnus.permanent_country.name }}{% endif %}</div></div>{% endif %}
             {% if alumnus.further_study_institution %}<div class="info-item"><div class="k">Further study</div><div class="v">{{ alumnus.further_study_institution }}{% if alumnus.further_study_degree %} — {{ alumnus.further_study_degree }}{% endif %}{% if alumnus.further_study_country %} ({{ alumnus.further_study_country.name }}){% endif %}</div></div>{% endif %}
             {% if alumnus.linkedin_url %}<div class="info-item"><div class="k">LinkedIn</div><div class="v"><a href="{{ alumnus.linkedin_url }}" rel="noopener" target="_blank">Profile</a></div></div>{% endif %}
             {% if alumnus.website %}<div class="info-item"><div class="k">Website</div><div class="v"><a href="{{ alumnus.website }}" rel="noopener" target="_blank">Link</a></div></div>{% endif %}

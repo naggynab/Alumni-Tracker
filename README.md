@@ -35,7 +35,9 @@ authentication story and campus-wide (multi-faculty) search.
 Filters combine, paginate, and preserve state across pages.
 
 **Self-service profiles** — once linked, alumni edit their own employment,
-location, further-study and contact details, and can make their record private.
+location, further-study and contact details. Imported and newly claimed records
+are private by default; an alumnus must opt in before appearing in the public
+yearbook.
 
 ## Project layout
 
@@ -215,6 +217,28 @@ normalised into canonical fields of study (see `directory/choices.py`).
 python manage.py import_alumni            # import from data/
 python manage.py import_alumni --flush    # wipe unclaimed records first
 ```
+
+### Secure Render data loading
+
+The full source files contain personal student data and are intentionally not
+part of the application repository. The Render build only runs migrations; it
+never imports data from the code checkout. After the web service and Postgres
+database are created, load the files once from a trusted machine using the
+database's private connection method or a temporary, restricted external
+connection:
+
+```powershell
+$env:DATABASE_URL = "<temporary Render database connection string>"
+.venv\Scripts\python.exe manage.py migrate
+.venv\Scripts\python.exe manage.py import_alumni `
+  --csv "data\data-sources\list for Alumni.csv" `
+  --json "data\data-sources\data.json"
+Remove-Item Env:DATABASE_URL
+```
+
+Do not put the connection string, source files, exports, or database backups in
+Git, tickets, screenshots, or chat. Imported records are private by default;
+staff should publish only records for which the alumnus has opted in.
 
 ## Tests
 

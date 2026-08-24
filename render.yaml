@@ -1,13 +1,19 @@
 databases:
   - name: alumni-tracker-db
-    plan: free
+    # Student records need a non-expiring database with managed recovery.
+    plan: basic-256mb
     databaseName: alumni_tracker
+    # The web service uses Render's private connection string.
+    ipAllowList: []
 
 services:
   - type: web
     name: alumni-tracker
     runtime: python
     plan: free
+    domains:
+      - alumni-tracker.itprojects.pcampus.edu.np
+    renderSubdomainPolicy: disabled
     buildCommand: "./build.sh"
     startCommand: "gunicorn alumni_tracker.wsgi:application"
     envVars:
@@ -20,11 +26,21 @@ services:
       - key: DEBUG
         value: "False"
       - key: ALLOWED_HOSTS
-        value: "thapanabina.com.np,www.thapanabina.com.np,.onrender.com"
+        value: "alumni-tracker.itprojects.pcampus.edu.np"
       - key: CSRF_TRUSTED_ORIGINS
-        value: "https://thapanabina.com.np,https://www.thapanabina.com.np"
+        value: "https://alumni-tracker.itprojects.pcampus.edu.np"
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+      - key: SECURE_HSTS_SECONDS
+        value: "31536000"
+      - key: SECURE_HSTS_PRELOAD
+        value: "True"
       - key: PYTHON_VERSION
         value: "3.12.4"
+      - key: DEPARTMENT_EMAILS
+        sync: false
+      - key: DEPARTMENT_EMAIL_DOMAINS
+        sync: false
       - key: EMAIL_PROVIDER
         sync: false
       - key: RESEND_API_KEY

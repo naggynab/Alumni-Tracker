@@ -38,6 +38,10 @@
             <div><label>City</label>{{ form.current_city }}</div>
             <div><label>Country</label>{{ form.current_country }}</div>
         </div>
+        <label style="display:flex;gap:10px;align-items:flex-start;margin-top:20px">
+            {{ form.is_public }}
+            <span><strong>Show my profile in the public yearbook</strong><br><span class="muted">Only enable this if you consent to sharing your name, program, batch, work, and current location.</span></span>
+        </label>
     </div>
 
     <!-- Institutional Identity (verified, read-only) -->

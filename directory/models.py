@@ -99,8 +99,8 @@ class Alumnus(models.Model):
         help_text="The signed-in account that has claimed this record.",
     )
     is_public = models.BooleanField(
-        default=True,
-        help_text="If off, the record is hidden from the public directory.",
+        default=False,
+        help_text="If on, the record appears in the public directory.",
     )
     date_added = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)

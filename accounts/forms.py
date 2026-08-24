@@ -1,6 +1,7 @@
 import uuid
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError
 from allauth.account import app_settings as allauth_settings
@@ -146,18 +147,38 @@ class RegistrationForm(forms.Form):
         roll_number = cleaned.get("roll_number")
         last_name = cleaned.get("last_name")
         if roll_number and last_name:
+            field = PROGRAM_TO_FIELD.get(cleaned.get("program"), "other")
+            batch = _normalize_batch(cleaned.get("batch"))
             unclaimed = Alumnus.objects.filter(
                 class_roll_no__iexact=roll_number,
                 user_account__isnull=True,
             )
             if unclaimed.exists():
-                matches = unclaimed.filter(last_name__iexact=last_name.strip())
-                if not matches.exists():
+                identity_matches = unclaimed.filter(
+                    last_name__iexact=last_name.strip(),
+                    batch=batch,
+                    field_of_study=field,
+                )
+                if not identity_matches.exists():
                     self.add_error(
                         "roll_number",
-                        "That roll number does not match the supplied last name.",
+                        "Those roll number, program, and batch details do not match our records.",
                     )
-                elif matches.count() > 1:
+                elif not cleaned.get("date_of_birth"):
+                    self.add_error(
+                        "date_of_birth",
+                        "Date of birth is required to verify a pre-loaded record.",
+                    )
+                elif not identity_matches.filter(
+                    date_of_birth_bs__iexact=cleaned["date_of_birth"].strip()
+                ).exists():
+                    self.add_error(
+                        "date_of_birth",
+                        "The date of birth does not match our records.",
+                    )
+                elif identity_matches.filter(
+                    date_of_birth_bs__iexact=cleaned["date_of_birth"].strip()
+                ).count() > 1:
                     self.add_error(
                         "roll_number",
                         "This roll number is linked to multiple records. Please contact the administrator.",
@@ -172,15 +193,18 @@ class RegistrationForm(forms.Form):
         field = PROGRAM_TO_FIELD.get(data["program"], "other")
         batch = _normalize_batch(data["batch"])
 
-        # Create the account. Email is marked verified so registration logs
-        # the alumnus straight in (email verification is optional in dev).
+        # Create the account. Local development may use optional email
+        # verification; production can require verification through allauth.
         from allauth.account.models import EmailAddress
 
         user = User(email=data["email"], username=uuid.uuid4().hex[:30])
         user.set_password(data["password"])
         user.save()
         EmailAddress.objects.create(
-            user=user, email=data["email"], primary=True, verified=True
+            user=user,
+            email=data["email"],
+            primary=True,
+            verified=getattr(settings, "ACCOUNT_EMAIL_VERIFICATION", "optional") != "mandatory",
         )
 
         # Link an existing unclaimed record by roll number, else create one.
@@ -188,6 +212,9 @@ class RegistrationForm(forms.Form):
             user_account__isnull=True,
             class_roll_no__iexact=data["roll_number"].strip(),
             last_name__iexact=data["last_name"].strip(),
+            batch=batch,
+            field_of_study=field,
+            date_of_birth_bs__iexact=data["date_of_birth"].strip(),
         ).first()
         if alumnus is None:
             alumnus = Alumnus(
@@ -200,6 +227,7 @@ class RegistrationForm(forms.Form):
                 date_of_birth_bs=data["date_of_birth"].strip(),
             )
         alumnus.user_account = user
+        alumnus.is_public = False
         if not alumnus.email:
             alumnus.email = data["email"]
         alumnus.save()
@@ -311,6 +339,7 @@ class AlumnusProfileForm(forms.ModelForm):
             "further_study_institution",
             "further_study_degree",
             "further_study_country",
+            "is_public",
         ]
         labels = {
             "date_of_birth_bs": "Date of Birth",
@@ -324,6 +353,7 @@ class AlumnusProfileForm(forms.ModelForm):
             "further_study_institution": "University Name (Post-Grad)",
             "further_study_degree": "Degree Obtained",
             "further_study_country": "Country of Study",
+            "is_public": "Show my profile in the public yearbook",
         }
         widgets = {
             "date_of_birth_bs": forms.TextInput(attrs={"placeholder": "mm/dd/yyyy"}),

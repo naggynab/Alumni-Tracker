@@ -154,6 +154,21 @@ class RegistrationSecurityTests(TestCase):
             ).exists()
         )
 
+    def test_preloaded_registration_requires_matching_date_of_birth(self):
+        Alumnus.objects.create(
+            first_name="Nabina",
+            last_name="Karki",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            class_roll_no="080BCT047",
+            date_of_birth_bs="2057/01/01",
+        )
+
+        form = RegistrationForm(data=self.registration_data("ValidPass1!"))
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("date_of_birth", form.errors)
+
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_recovery_email_can_request_password_reset(self):
         form = RegistrationForm(data=self.registration_data("ValidPass1!"))

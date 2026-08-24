@@ -91,21 +91,25 @@ class FilterTests(TestCase):
             first_name="Aashish", last_name="Karki", batch="078",
             field_of_study=FIELD_COMPUTER, current_city="Kathmandu",
             current_country="NP", employer_organization="Nepal Telecom",
+            is_public=True,
         )
         Alumnus.objects.create(
             first_name="Bindu", last_name="Paudel", batch="078",
             field_of_study=FIELD_ELECTRICAL, current_city="Lalitpur",
             current_country="US", employer_organization="LogPoint",
+            is_public=True,
         )
         Alumnus.objects.create(
             first_name="Canon", last_name="One", batch="078",
             field_of_study=FIELD_COMPUTER,
             further_study_institution="Institute of Engineering, Pulchowk",
+            is_public=True,
         )
         Alumnus.objects.create(
             first_name="Canon", last_name="Two", batch="078",
             field_of_study=FIELD_COMPUTER,
             further_study_institution="Pulchowk Campus, IOE",
+            is_public=True,
         )
 
     def _count(self, params):

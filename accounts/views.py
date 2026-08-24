@@ -114,7 +114,9 @@ def claim_record(request):
                 match.user_account = request.user
                 if not match.email and request.user.email:
                     match.email = request.user.email
-                match.save(update_fields=["user_account", "email", "date_modified"])
+                # Claiming a pre-loaded record is not consent to publish it.
+                match.is_public = False
+                match.save(update_fields=["user_account", "email", "is_public", "date_modified"])
                 ClaimReview.objects.create(
                     alumnus=match,
                     claimant=request.user,

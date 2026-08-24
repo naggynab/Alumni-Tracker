@@ -226,6 +226,8 @@ class Command(BaseCommand):
                     contact_number=(s.get("contact_number") or "").strip(),
                     linkedin_url=self._clean_url(s.get("linked_in_id")),
                     website=self._clean_url(s.get("website")),
+                    # Imported records are private until the alumnus opts in.
+                    is_public=False,
                 )
                 seen_keys.add(
                     dedupe_key(field, normalize_batch(batch),
@@ -278,6 +280,8 @@ class Command(BaseCommand):
                     current_country=country,
                     permanent_district=(row.get("district") or "").strip(),
                     permanent_country=country,
+                    # Roster data is not consent to publish a profile.
+                    is_public=False,
                 )
                 created += 1
         return created
