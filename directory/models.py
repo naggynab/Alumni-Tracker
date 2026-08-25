@@ -299,60 +299,6 @@ class CorrectionRequest(models.Model):
         return f"{self.get_status_display()} correction for {self.alumnus}"
 
 
-class MentorshipProfile(models.Model):
-    """Opt-in public profile for an alumnus willing to mentor students."""
-
-    alumnus = models.OneToOneField(
-        Alumnus, on_delete=models.CASCADE, related_name="mentorship_profile"
-    )
-    headline = models.CharField(max_length=150, blank=True)
-    bio = models.TextField(blank=True)
-    expertise = models.CharField(max_length=500, blank=True)
-    max_mentees = models.PositiveIntegerField(default=3)
-    is_available = models.BooleanField(default=True, db_index=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["-is_available", "alumnus__last_name", "alumnus__first_name"]
-
-    def __str__(self):
-        return f"Mentorship profile for {self.alumnus}"
-
-
-class MentorshipRequest(models.Model):
-    STATUS_CHOICES = (
-        ("pending", "Pending"),
-        ("accepted", "Accepted"),
-        ("declined", "Declined"),
-        ("closed", "Closed"),
-    )
-
-    mentor = models.ForeignKey(
-        Alumnus, on_delete=models.CASCADE, related_name="mentorship_requests_received"
-    )
-    mentee = models.ForeignKey(
-        Alumnus, on_delete=models.CASCADE, related_name="mentorship_requests_sent"
-    )
-    message = models.TextField()
-    status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True
-    )
-    response_note = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    responded_at = models.DateTimeField(null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["status", "-created_at"]
-        indexes = [
-            models.Index(fields=["mentor", "status"]),
-            models.Index(fields=["mentee", "status"]),
-        ]
-
-    def __str__(self):
-        return f"Mentorship request from {self.mentee} to {self.mentor}"
-
-
 class JobPosting(models.Model):
     STATUS_CHOICES = (
         ("pending", "Pending review"),
@@ -401,76 +347,6 @@ class JobPosting(models.Model):
 
     def __str__(self):
         return f"{self.title} at {self.organization}"
-
-
-class AlumniEvent(models.Model):
-    STATUS_CHOICES = (
-        ("pending", "Pending review"),
-        ("published", "Published"),
-        ("cancelled", "Cancelled"),
-        ("rejected", "Rejected"),
-    )
-
-    organizer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name="organized_alumni_events",
-    )
-    title = models.CharField(max_length=180)
-    description = models.TextField()
-    starts_at = models.DateTimeField(db_index=True)
-    ends_at = models.DateTimeField(null=True, blank=True)
-    location = models.CharField(max_length=180, blank=True)
-    virtual_url = models.URLField(blank=True)
-    max_attendees = models.PositiveIntegerField(null=True, blank=True)
-    status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True
-    )
-    reviewed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="reviewed_alumni_events",
-    )
-    reviewed_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["starts_at", "-created_at"]
-
-    def __str__(self):
-        return self.title
-
-
-class EventRegistration(models.Model):
-    STATUS_CHOICES = (("registered", "Registered"), ("cancelled", "Cancelled"))
-
-    event = models.ForeignKey(
-        AlumniEvent, on_delete=models.CASCADE, related_name="registrations"
-    )
-    attendee = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="event_registrations",
-    )
-    status = models.CharField(
-        max_length=15, choices=STATUS_CHOICES, default="registered", db_index=True
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["event", "attendee"], name="unique_event_attendee"
-            )
-        ]
-
-    def __str__(self):
-        return f"{self.attendee} at {self.event}"
 
 
 class ContactRequest(models.Model):

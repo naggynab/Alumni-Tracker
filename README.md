@@ -109,10 +109,9 @@ The signed-in profile checklist is at `/me/completeness/`. These pages reuse
 the app shell and do not modify the existing home page or public UI.
 
 Student Services is available at `/student/`. It includes correction requests,
-mentorship, moderated jobs and internships, event registration/submissions,
-and private contact requests. Students only see published community content;
-corrections, jobs, and events require staff review before publication or data
-changes.
+moderated jobs and internships, and private contact requests. Students only see
+published community content; corrections and jobs require staff review before
+publication or data changes.
 
 The Student Services area also includes notifications, saved directory searches,
 private favorites, batch/community groups, moderated alumni stories, skills and

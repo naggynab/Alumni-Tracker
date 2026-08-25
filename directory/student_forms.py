@@ -4,14 +4,7 @@ from datetime import date
 
 from django import forms
 
-from .models import (
-    AlumniEvent,
-    ContactRequest,
-    CorrectionRequest,
-    JobPosting,
-    MentorshipProfile,
-    MentorshipRequest,
-)
+from .models import ContactRequest, CorrectionRequest, JobPosting
 
 
 CORRECTABLE_FIELDS = (
@@ -49,38 +42,6 @@ class CorrectionReviewForm(forms.ModelForm):
         widgets = {"reviewer_note": forms.Textarea(attrs={"rows": 3})}
 
 
-class MentorshipProfileForm(forms.ModelForm):
-    class Meta:
-        model = MentorshipProfile
-        fields = ["headline", "bio", "expertise", "max_mentees", "is_available"]
-        widgets = {
-            "bio": forms.Textarea(attrs={"rows": 4}),
-            "expertise": forms.TextInput(
-                attrs={"placeholder": "e.g. embedded systems, higher studies, career planning"}
-            ),
-        }
-
-    def clean_max_mentees(self):
-        value = self.cleaned_data["max_mentees"]
-        if value < 1 or value > 20:
-            raise forms.ValidationError("Choose a capacity between 1 and 20.")
-        return value
-
-
-class MentorshipRequestForm(forms.ModelForm):
-    class Meta:
-        model = MentorshipRequest
-        fields = ["message"]
-        widgets = {
-            "message": forms.Textarea(
-                attrs={
-                    "rows": 4,
-                    "placeholder": "Tell the mentor what you would like guidance with.",
-                }
-            )
-        }
-
-
 class JobPostingForm(forms.ModelForm):
     class Meta:
         model = JobPosting
@@ -106,37 +67,6 @@ class JobPostingForm(forms.ModelForm):
         deadline = cleaned.get("deadline")
         if deadline and deadline < date.today():
             self.add_error("deadline", "The deadline cannot be in the past.")
-        return cleaned
-
-
-class AlumniEventForm(forms.ModelForm):
-    class Meta:
-        model = AlumniEvent
-        fields = [
-            "title",
-            "description",
-            "starts_at",
-            "ends_at",
-            "location",
-            "virtual_url",
-            "max_attendees",
-        ]
-        widgets = {
-            "description": forms.Textarea(attrs={"rows": 5}),
-            "starts_at": forms.DateTimeInput(
-                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
-            ),
-            "ends_at": forms.DateTimeInput(
-                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
-            ),
-        }
-
-    def clean(self):
-        cleaned = super().clean()
-        starts_at = cleaned.get("starts_at")
-        ends_at = cleaned.get("ends_at")
-        if starts_at and ends_at and ends_at <= starts_at:
-            self.add_error("ends_at", "The end time must be after the start time.")
         return cleaned
 
 

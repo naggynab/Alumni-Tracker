@@ -2,7 +2,7 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -11,25 +11,18 @@ from accounts.authentication import normalize_roll_number
 from .audit import log_department_action
 from .notifications import notify_user
 from .models import (
-    AlumniEvent,
     Alumnus,
     ContactRequest,
     CorrectionRequest,
-    EventRegistration,
     JobPosting,
-    MentorshipProfile,
-    MentorshipRequest,
 )
 from .permissions import department_data_editor_required
 from .student_forms import (
-    AlumniEventForm,
     ContactRequestForm,
     CorrectionRequestForm,
     CorrectionReviewForm,
     DecisionForm,
     JobPostingForm,
-    MentorshipProfileForm,
-    MentorshipRequestForm,
 )
 
 
@@ -55,26 +48,14 @@ def student_services(request):
     if alumnus is None:
         return redirect("accounts:claim-record")
     today = timezone.localdate()
-    now = timezone.now()
     context = _shell_context(
         request,
         alumnus=alumnus,
-        upcoming_events=AlumniEvent.objects.filter(
-            status="published", starts_at__gte=now
-        )[:4],
         current_jobs=JobPosting.objects.filter(status="published").filter(
             Q(deadline__isnull=True) | Q(deadline__gte=today)
         )[:4],
-        mentors=MentorshipProfile.objects.filter(
-            is_available=True,
-            alumnus__is_public=True,
-            alumnus__user_account__isnull=False,
-        ).exclude(alumnus=alumnus)[:4],
         pending_corrections=CorrectionRequest.objects.filter(
             alumnus=alumnus, status__in=("pending", "in_review")
-        ).count(),
-        pending_requests=MentorshipRequest.objects.filter(
-            mentee=alumnus, status="pending"
         ).count(),
     )
     return render(request, "directory/student_services.html", context)
@@ -135,150 +116,6 @@ def correction_requests(request):
 
 
 @login_required
-def mentorship_hub(request):
-    alumnus = _student_alumnus(request)
-    if alumnus is None:
-        return redirect("accounts:claim-record")
-    profiles = (
-        MentorshipProfile.objects.filter(
-            is_available=True,
-            alumnus__is_public=True,
-            alumnus__user_account__isnull=False,
-        )
-        .exclude(alumnus=alumnus)
-        .annotate(
-            active_mentees=Count(
-                "alumnus__mentorship_requests_received",
-                filter=Q(alumnus__mentorship_requests_received__status="accepted"),
-            )
-        )
-        .select_related("alumnus")
-    )
-    return render(
-        request,
-        "directory/mentorship.html",
-        _shell_context(
-            request,
-            alumnus=alumnus,
-            profiles=profiles,
-            sent_requests=MentorshipRequest.objects.filter(
-                mentee=alumnus
-            ).select_related("mentor"),
-            received_requests=MentorshipRequest.objects.filter(
-                mentor=alumnus
-            ).select_related("mentee"),
-        ),
-    )
-
-
-@login_required
-def mentorship_profile(request):
-    alumnus = _student_alumnus(request)
-    if alumnus is None:
-        return redirect("accounts:claim-record")
-    profile, _created = MentorshipProfile.objects.get_or_create(alumnus=alumnus)
-    if request.method == "POST":
-        form = MentorshipProfileForm(request.POST, instance=profile)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Mentorship profile saved.")
-            return redirect("directory:mentorship")
-    else:
-        form = MentorshipProfileForm(instance=profile)
-    return render(
-        request,
-        "directory/mentorship_profile.html",
-        _shell_context(request, form=form, alumnus=alumnus),
-    )
-
-
-@login_required
-def mentorship_request(request, mentor_id):
-    mentee = _student_alumnus(request)
-    if mentee is None:
-        return redirect("accounts:claim-record")
-    profile = get_object_or_404(
-        MentorshipProfile.objects.select_related("alumnus"),
-        alumnus_id=mentor_id,
-        is_available=True,
-        alumnus__is_public=True,
-        alumnus__user_account__isnull=False,
-    )
-    mentor = profile.alumnus
-    if mentor == mentee:
-        messages.error(request, "You cannot request yourself as a mentor.")
-        return redirect("directory:mentorship")
-    if request.method == "POST":
-        form = MentorshipRequestForm(request.POST)
-        active_count = MentorshipRequest.objects.filter(
-            mentor=mentor, status="accepted"
-        ).count()
-        if active_count >= profile.max_mentees:
-            form.add_error(None, "This mentor is currently at capacity.")
-        elif MentorshipRequest.objects.filter(
-            mentor=mentor, mentee=mentee, status="pending"
-        ).exists():
-            form.add_error(None, "You already have a pending request to this mentor.")
-        elif form.is_valid():
-            request_record = form.save(commit=False)
-            request_record.mentor = mentor
-            request_record.mentee = mentee
-            request_record.save()
-            notify_user(
-                mentor.user_account,
-                "mentorship",
-                "New mentorship request",
-                f"{mentee.full_name} sent you a mentorship request.",
-                "/student/mentorship/",
-            )
-            messages.success(request, "Mentorship request sent.")
-            return redirect("directory:mentorship")
-    else:
-        form = MentorshipRequestForm()
-    return render(
-        request,
-        "directory/mentorship_request.html",
-        _shell_context(request, form=form, mentor=mentor, profile=profile),
-    )
-
-
-@login_required
-def mentorship_decision(request, request_id):
-    mentor = _student_alumnus(request)
-    if mentor is None:
-        return redirect("accounts:claim-record")
-    mentorship = get_object_or_404(
-        MentorshipRequest, pk=request_id, mentor=mentor, status="pending"
-    )
-    if request.method == "POST":
-        form = DecisionForm(request.POST)
-        if form.is_valid():
-            if form.cleaned_data["status"] == "accepted":
-                capacity = MentorshipProfile.objects.filter(
-                    alumnus=mentor
-                ).values_list("max_mentees", flat=True).first() or 0
-                active_count = MentorshipRequest.objects.filter(
-                    mentor=mentor, status="accepted"
-                ).count()
-                if active_count >= capacity:
-                    messages.error(request, "Your mentorship capacity has been reached.")
-                    return redirect("directory:mentorship")
-            mentorship.status = form.cleaned_data["status"]
-            mentorship.response_note = form.cleaned_data["response_note"]
-            mentorship.responded_at = timezone.now()
-            mentorship.save()
-            notify_user(
-                mentorship.mentee.user_account,
-                "mentorship",
-                "Mentorship request updated",
-                f"Your mentorship request was {mentorship.get_status_display().lower()}.",
-                "/student/mentorship/",
-            )
-            messages.success(request, "Mentorship request updated.")
-    return redirect("directory:mentorship")
-
-
-@login_required
 def job_board(request):
     alumnus = _student_alumnus(request)
     if alumnus is None:
@@ -316,73 +153,6 @@ def job_submit(request):
         "directory/job_submit.html",
         _shell_context(request, form=form, alumnus=alumnus),
     )
-
-
-@login_required
-def event_list(request):
-    alumnus = _student_alumnus(request)
-    if alumnus is None:
-        return redirect("accounts:claim-record")
-    now = timezone.now()
-    events = AlumniEvent.objects.filter(status="published", starts_at__gte=now)
-    registered = set(
-        EventRegistration.objects.filter(
-            attendee=request.user, status="registered"
-        ).values_list("event_id", flat=True)
-    )
-    return render(
-        request,
-        "directory/event_list.html",
-        _shell_context(request, events=events, registered=registered, alumnus=alumnus),
-    )
-
-
-@login_required
-def event_submit(request):
-    alumnus = _student_alumnus(request)
-    if alumnus is None:
-        return redirect("accounts:claim-record")
-    if request.method == "POST":
-        form = AlumniEventForm(request.POST)
-        if form.is_valid():
-            event = form.save(commit=False)
-            event.organizer = request.user
-            event.status = "pending"
-            event.save()
-            messages.success(request, "Event submitted for review.")
-            return redirect("directory:event-list")
-    else:
-        form = AlumniEventForm()
-    return render(
-        request,
-        "directory/event_submit.html",
-        _shell_context(request, form=form, alumnus=alumnus),
-    )
-
-
-@login_required
-def event_registration(request, event_id):
-    if request.method != "POST":
-        return redirect("directory:event-list")
-    event = get_object_or_404(AlumniEvent, pk=event_id, status="published")
-    action = request.POST.get("action", "register")
-    registration, _created = EventRegistration.objects.get_or_create(
-        event=event, attendee=request.user
-    )
-    if action == "cancel":
-        registration.status = "cancelled"
-        registration.save(update_fields=["status", "updated_at"])
-        messages.info(request, "Event registration cancelled.")
-    else:
-        if event.max_attendees and EventRegistration.objects.filter(
-            event=event, status="registered"
-        ).exclude(attendee=request.user).count() >= event.max_attendees:
-            messages.error(request, "This event is currently full.")
-        else:
-            registration.status = "registered"
-            registration.save(update_fields=["status", "updated_at"])
-            messages.success(request, "You are registered for the event.")
-    return redirect("directory:event-list")
 
 
 @login_required
@@ -563,7 +333,6 @@ def CorrectionRequestFieldChoices():
 @department_data_editor_required
 def community_moderation(request):
     pending_jobs = JobPosting.objects.filter(status="pending").select_related("posted_by")
-    pending_events = AlumniEvent.objects.filter(status="pending").select_related("organizer")
     if request.method == "POST":
         kind = request.POST.get("kind")
         object_id = request.POST.get("object_id")
@@ -571,9 +340,6 @@ def community_moderation(request):
         if kind == "job":
             item = get_object_or_404(JobPosting, pk=object_id, status="pending")
             choices = {"published", "rejected", "closed"}
-        elif kind == "event":
-            item = get_object_or_404(AlumniEvent, pk=object_id, status="pending")
-            choices = {"published", "rejected", "cancelled"}
         else:
             item = None
             choices = set()
@@ -590,7 +356,6 @@ def community_moderation(request):
         "directory/community_moderation.html",
         {
             "pending_jobs": pending_jobs,
-            "pending_events": pending_events,
             "app_alumnus": getattr(request.user, "alumnus_profile", None),
             "nav_active": "report",
         },

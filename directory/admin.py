@@ -3,16 +3,12 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 
 from .models import (
-    AlumniEvent,
     Alumnus,
     ClaimReview,
     ContactRequest,
     CorrectionRequest,
-    EventRegistration,
     FollowUp,
     JobPosting,
-    MentorshipProfile,
-    MentorshipRequest,
     ActivityLog,
     AlumniFavorite,
     AlumniSkill,
@@ -95,44 +91,12 @@ class CorrectionRequestAdmin(admin.ModelAdmin):
     raw_id_fields = ("alumnus", "requester", "reviewer")
 
 
-@admin.register(MentorshipProfile)
-class MentorshipProfileAdmin(admin.ModelAdmin):
-    list_display = ("alumnus", "headline", "is_available", "max_mentees", "updated_at")
-    list_filter = ("is_available",)
-    search_fields = ("alumnus__first_name", "alumnus__last_name", "expertise")
-    raw_id_fields = ("alumnus",)
-
-
-@admin.register(MentorshipRequest)
-class MentorshipRequestAdmin(admin.ModelAdmin):
-    list_display = ("mentor", "mentee", "status", "created_at", "responded_at")
-    list_filter = ("status",)
-    search_fields = ("mentor__first_name", "mentor__last_name", "mentee__first_name", "mentee__last_name")
-    raw_id_fields = ("mentor", "mentee")
-
-
 @admin.register(JobPosting)
 class JobPostingAdmin(admin.ModelAdmin):
     list_display = ("title", "organization", "employment_type", "status", "deadline", "created_at")
     list_filter = ("status", "employment_type")
     search_fields = ("title", "organization", "description")
     raw_id_fields = ("posted_by", "reviewed_by")
-
-
-@admin.register(AlumniEvent)
-class AlumniEventAdmin(admin.ModelAdmin):
-    list_display = ("title", "starts_at", "location", "status", "organizer")
-    list_filter = ("status", "starts_at")
-    search_fields = ("title", "description", "location")
-    raw_id_fields = ("organizer", "reviewed_by")
-
-
-@admin.register(EventRegistration)
-class EventRegistrationAdmin(admin.ModelAdmin):
-    list_display = ("event", "attendee", "status", "created_at")
-    list_filter = ("status",)
-    search_fields = ("event__title", "attendee__email")
-    raw_id_fields = ("event", "attendee")
 
 
 @admin.register(ContactRequest)

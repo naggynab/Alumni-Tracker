@@ -13,20 +13,9 @@
         <a class="btn btn-primary" href="{% url 'directory:correction-requests' %}">Request a correction</a>
     </section>
     <section class="panel service-card">
-        <div class="panel-title">Mentorship</div>
-        <p class="muted">Find experienced alumni or offer guidance in your area of expertise.</p>
-        <p class="service-meta">{{ pending_requests }} pending request{{ pending_requests|pluralize }}</p>
-        <a class="btn btn-primary" href="{% url 'directory:mentorship' %}">Explore mentorship</a>
-    </section>
-    <section class="panel service-card">
         <div class="panel-title">Jobs &amp; internships</div>
         <p class="muted">Browse community opportunities or submit a verified opportunity.</p>
         <a class="btn btn-primary" href="{% url 'directory:job-board' %}">Open job board</a>
-    </section>
-    <section class="panel service-card">
-        <div class="panel-title">Events &amp; reunions</div>
-        <p class="muted">Keep up with published reunions, talks, and alumni gatherings.</p>
-        <a class="btn btn-primary" href="{% url 'directory:event-list' %}">View events</a>
     </section>
     <section class="panel service-card">
         <div class="panel-title">Private contacts</div>
@@ -49,12 +38,6 @@
 <section class="panel"><div class="panel-title">Account tools</div><div class="service-actions"><a class="btn btn-secondary" href="{% url 'directory:resume-pdf' %}">Download profile PDF</a><a class="btn btn-secondary" href="{% url 'directory:activity-history' %}">Activity history</a><a class="btn btn-secondary" href="{% url 'directory:api-tokens' %}">API access</a><a class="btn btn-secondary" href="{% url 'directory:security' %}">Security</a></div><hr style="border:0;border-top:1px solid var(--line);margin:22px 0 16px"><form action="{% url 'set_language' %}" method="post" class="service-actions">{% csrf_token %}<label for="language">Language</label><select id="language" name="language">{% get_current_language as CURRENT_LANGUAGE %}{% get_available_languages as AVAILABLE_LANGUAGES %}{% for code, name in AVAILABLE_LANGUAGES %}<option value="{{ code }}"{% if code == CURRENT_LANGUAGE %} selected{% endif %}>{{ name }}</option>{% endfor %}</select><input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-secondary">Save language</button></form></section>
 
 <div class="stat-grid">
-    <section class="panel stat-panel">
-        <div class="panel-title">Upcoming events</div>
-        {% if upcoming_events %}
-        <ul class="workflow-list">{% for event in upcoming_events %}<li><strong>{{ event.title }}</strong><span>{{ event.starts_at|date:"M j, Y · g:i A" }}{% if event.location %} · {{ event.location }}{% endif %}</span></li>{% endfor %}</ul>
-        {% else %}<p class="bar-empty">No published events yet.</p>{% endif %}
-    </section>
     <section class="panel stat-panel">
         <div class="panel-title">Recent opportunities</div>
         {% if current_jobs %}
