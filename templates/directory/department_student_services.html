@@ -1,0 +1,45 @@
+{% extends "base_app.html" %}
+{% block title %}Department Student Services{% endblock %}
+{% block content %}
+<h1 class="page-title">Department Student Services</h1>
+<p class="page-sub">Authority workspace for resolving student requests and reviewing feedback.</p>
+
+<div class="service-grid">
+    {% if can_edit_workflows %}
+    <section class="panel service-card">
+        <div class="panel-title">Student request desk</div>
+        <p class="muted">Review correction requests and department-owned submissions, update their status, and send replies.</p>
+        <a class="btn btn-primary" href="{% url 'directory:student-requests' %}">Open student requests</a>
+    </section>
+    <section class="panel service-card">
+        <div class="panel-title">Student recommendations &amp; feedback</div>
+        <p class="muted">Review anonymized recommendations submitted through department surveys.</p>
+        <a class="btn btn-primary" href="{% url 'directory:department-feedback' %}">Review feedback</a>
+    </section>
+    {% else %}
+    <section class="panel service-card">
+        <div class="panel-title">Request access</div>
+        <p class="muted">Your account can view department reports. A department administrator must grant the Data Editor role before you can resolve requests.</p>
+    </section>
+    {% endif %}
+    <section class="panel service-card">
+        <div class="panel-title">Department Report</div>
+        <p class="muted">Open aggregate reporting, data quality, verification, and follow-up dashboards.</p>
+        <a class="btn btn-primary" href="{% url 'directory:department-report' %}">Open department report</a>
+    </section>
+    {% if can_edit_workflows %}
+    <section class="panel service-card">
+        <div class="panel-title">Community moderation</div>
+        <p class="muted">Review community stories, resources, jobs, and events submitted by alumni.</p>
+        <div class="service-actions"><a class="btn btn-secondary" href="{% url 'directory:community-moderation' %}">Community submissions</a><a class="btn btn-secondary" href="{% url 'directory:content-moderation' %}">Stories &amp; resources</a></div>
+    </section>
+    {% endif %}
+    {% if can_manage_department_roles %}
+    <section class="panel service-card">
+        <div class="panel-title">Authority roles</div>
+        <p class="muted">Manage report, editor, and administrator access for department accounts.</p>
+        <a class="btn btn-secondary" href="{% url 'directory:department-roles' %}">Manage roles</a>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

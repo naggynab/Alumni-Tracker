@@ -5,8 +5,6 @@ from .permissions import is_department_only_staff
 
 
 DEPARTMENT_ONLY_BLOCKED_PATHS = (
-    "/student/",
-    "/me/",
     "/accounts/claim/",
     "/accounts/profile/edit/",
     "/api/v1/",
@@ -20,8 +18,11 @@ class DepartmentOnlyAccessMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if is_department_only_staff(getattr(request, "user", None)) and request.path.startswith(
-            DEPARTMENT_ONLY_BLOCKED_PATHS
+        path = request.path or ""
+        department_only = is_department_only_staff(getattr(request, "user", None))
+        student_subpage = path.startswith("/student/") and path != "/student/"
+        if department_only and (
+            student_subpage or path.startswith(DEPARTMENT_ONLY_BLOCKED_PATHS)
         ):
             from django.shortcuts import redirect
 

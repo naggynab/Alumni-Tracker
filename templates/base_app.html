@@ -21,15 +21,16 @@
             <span>ALUMNI TRACKER</span>
         </div>
         <nav>
-            {% if not is_department_only_staff %}
             <a href="{% url 'directory:my-profile' %}" class="{% if nav_active == 'profile' %}active{% endif %}">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
                 My Profile
             </a>
+            {% if not is_department_only_staff %}
             <a href="{% url 'accounts:edit-profile' %}" class="{% if nav_active == 'edit' %}active{% endif %}">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                 Edit Profile
             </a>
+            {% endif %}
             <a href="{% url 'directory:alumni-list' %}" class="{% if nav_active == 'yearbook' %}active{% endif %}">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5h6a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2Z"/><path d="M22 5h-6a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22Z"/></svg>
                 View Yearbook
@@ -38,7 +39,6 @@
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 6h8M8 10h6"/></svg>
                 Student Services
             </a>
-            {% endif %}
             {% if is_department_staff %}
             <a href="{% url 'directory:department-report' %}" class="{% if nav_active == 'report' %}active{% endif %}">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg>

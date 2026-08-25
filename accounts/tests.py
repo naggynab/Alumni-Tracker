@@ -263,22 +263,33 @@ class DepartmentStaffLoginTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "We could not send the reset link right now.")
 
-    def test_staff_only_user_cannot_open_student_services(self):
+    def test_staff_only_user_gets_department_student_services(self):
         self.client.force_login(self.user)
 
         response = self.client.get(reverse("directory:student-services"))
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response["Location"], reverse("directory:department-report"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Department Student Services")
+        self.assertContains(response, "Department Report")
 
-    def test_staff_only_sidebar_hides_alumni_services(self):
+    def test_staff_only_user_gets_staff_profile(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("directory:my-profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Department Staff Profile")
+        self.assertNotContains(response, "Link my alumnus record")
+
+    def test_staff_only_sidebar_shows_authority_dashboards(self):
         self.client.force_login(self.user)
 
         response = self.client.get(reverse("directory:department-report"))
 
         self.assertContains(response, "Department Report")
-        self.assertNotContains(response, "Student Services")
-        self.assertNotContains(response, "My Profile")
+        self.assertContains(response, "Student Services")
+        self.assertContains(response, "My Profile")
+        self.assertNotContains(response, "Edit Profile")
 
     def test_alumni_staff_sidebar_keeps_both_workspaces(self):
         Alumnus.objects.create(

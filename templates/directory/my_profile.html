@@ -80,6 +80,18 @@
     <a class="btn btn-primary" href="{% url 'accounts:edit-profile' %}">Edit Profile</a>
 </div>
 {% else %}
+{% if is_department_only_staff %}
+<h1 class="page-title">Department Staff Profile</h1>
+<p class="page-sub">Authority account profile</p>
+<section class="panel stat-panel">
+    <div class="panel-title">Account Information</div>
+    <div class="info-cols c3">
+        <div class="info-item"><div class="k">Email Address</div><div class="v">{{ user.email }}</div></div>
+        <div class="info-item"><div class="k">Access</div><div class="v">Department Staff</div></div>
+        <div class="info-item"><div class="k">Workspace</div><div class="v">Department authority</div></div>
+    </div>
+</section>
+{% else %}
 <h1 class="page-title">My Profile</h1>
 <p class="page-sub">Signed in as {{ user.email }}.</p>
 <div class="panel">
@@ -89,5 +101,6 @@
         <a class="btn btn-primary" href="{% url 'accounts:claim-record' %}">Link my alumnus record</a>
     </div>
 </div>
+{% endif %}
 {% endif %}
 {% endblock %}

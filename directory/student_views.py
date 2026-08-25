@@ -26,7 +26,7 @@ from .models import (
     Resource,
     ServiceRequestReply,
 )
-from .permissions import department_data_editor_required
+from .permissions import department_data_editor_required, is_department_only_staff
 from .student_forms import (
     AlumniEventForm,
     ContactRequestForm,
@@ -183,6 +183,15 @@ def _request_entries(status_filter="pending"):
 
 @login_required
 def student_services(request):
+    if is_department_only_staff(request.user):
+        return render(
+            request,
+            "directory/department_student_services.html",
+            {
+                "app_alumnus": None,
+                "nav_active": "student",
+            },
+        )
     alumnus = _student_alumnus(request)
     if alumnus is None:
         return redirect("accounts:claim-record")
