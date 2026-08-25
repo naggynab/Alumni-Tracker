@@ -20,11 +20,14 @@ from .models import (
     Alumnus,
     ClaimReview,
     ContactRequest,
+    CorrectionRequest,
     EventRegistration,
     FollowUp,
     JobPosting,
     MentorshipProfile,
     MentorshipRequest,
+    Notification,
+    ServiceRequestReply,
 )
 from .permissions import is_department_data_editor, is_department_staff
 from .profile import profile_completeness
@@ -200,6 +203,106 @@ class DepartmentAccessTests(TestCase):
         self.user.email = "officer@ioe.edu.np"
         self.user.save(update_fields=["email"])
         self.assertFalse(is_department_staff(self.user))
+
+
+@override_settings(DEPARTMENT_EMAILS=[], DEPARTMENT_EMAIL_DOMAINS=[])
+class StudentServiceReplyTests(TestCase):
+    def setUp(self):
+        self.student = User.objects.create_user(
+            username="student-requester",
+            email="student@example.com",
+            password="ValidPass1!",
+        )
+        self.alumnus = Alumnus.objects.create(
+            first_name="Student",
+            last_name="Requester",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            current_city="Lalitpur",
+            user_account=self.student,
+        )
+        self.editor = User.objects.create_user(
+            username="department-editor",
+            email="editor@example.com",
+            password="ValidPass1!",
+        )
+        editor_group = Group.objects.create(name="Alumni Data Editors")
+        editor_group.user_set.add(self.editor)
+        self.staff = User.objects.create_user(
+            username="department-reader",
+            email="reader@example.com",
+            password="ValidPass1!",
+        )
+        staff_group = Group.objects.create(name="Department Staff")
+        staff_group.user_set.add(self.staff)
+        self.correction = CorrectionRequest.objects.create(
+            alumnus=self.alumnus,
+            requester=self.student,
+            field_name="current_city",
+            current_value="Lalitpur",
+            proposed_value="Kathmandu",
+            reason="I moved recently.",
+        )
+
+    def test_editor_can_approve_and_reply_to_correction(self):
+        self.client.force_login(self.editor)
+
+        response = self.client.post(
+            reverse("directory:student-requests"),
+            {
+                "kind": "correction",
+                "object_id": self.correction.pk,
+                "status": "approved",
+                "message": "Your city correction was approved.",
+            },
+        )
+
+        self.assertRedirects(response, reverse("directory:student-requests"))
+        self.correction.refresh_from_db()
+        self.alumnus.refresh_from_db()
+        self.assertEqual(self.correction.status, "approved")
+        self.assertEqual(self.alumnus.current_city, "Kathmandu")
+        self.assertEqual(
+            ServiceRequestReply.objects.get(object_id=self.correction.pk).message,
+            "Your city correction was approved.",
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.student,
+                kind="service_request",
+                message="Your city correction was approved.",
+            ).exists()
+        )
+
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("directory:correction-requests"))
+        self.assertContains(response, "Your city correction was approved.")
+
+    def test_department_reader_cannot_reply(self):
+        self.client.force_login(self.staff)
+
+        response = self.client.get(reverse("directory:student-requests"))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(ServiceRequestReply.objects.exists())
+
+    def test_private_peer_requests_are_not_in_department_queue(self):
+        recipient = User.objects.create_user(
+            username="private-recipient",
+            email="recipient@example.com",
+            password="ValidPass1!",
+        )
+        ContactRequest.objects.create(
+            sender=self.student,
+            recipient=recipient,
+            message="PRIVATE_CONTACT_REQUEST_SHOULD_NOT_APPEAR",
+        )
+        self.client.force_login(self.editor)
+
+        response = self.client.get(reverse("directory:student-requests"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "PRIVATE_CONTACT_REQUEST_SHOULD_NOT_APPEAR")
 
 
 class ReportAggregationTests(TestCase):

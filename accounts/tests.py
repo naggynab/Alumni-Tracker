@@ -250,6 +250,19 @@ class DepartmentStaffLoginTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["staff@example.com"])
 
+    @patch(
+        "accounts.forms.AllauthResetPasswordForm._send_password_reset_mail",
+        side_effect=RuntimeError("mail provider unavailable"),
+    )
+    def test_staff_password_reset_shows_delivery_error(self, _send_password_reset_mail):
+        response = self.client.post(
+            reverse("department_reset_password"),
+            {"email": "staff@example.com"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "We could not send the reset link right now.")
+
     def test_staff_only_user_cannot_open_student_services(self):
         self.client.force_login(self.user)
 
@@ -347,6 +360,19 @@ class RollNumberPasswordResetTests(TestCase):
 
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["registered-recovery@example.com"])
+
+    @patch(
+        "accounts.forms.AllauthResetPasswordForm._send_password_reset_mail",
+        side_effect=RuntimeError("mail provider unavailable"),
+    )
+    def test_reset_shows_delivery_error_instead_of_server_error(self, _send_password_reset_mail):
+        response = self.client.post(
+            reverse("account_reset_password"),
+            {"roll_number": "080BCT047"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "We could not send the reset link right now.")
 
 
 class SocialLoginRegistrationGateTests(TestCase):

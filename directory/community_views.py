@@ -50,7 +50,7 @@ from .models import (
 )
 from .notifications import notify_user
 from .permissions import department_data_editor_required
-from .student_views import _shell_context, _student_alumnus
+from .student_views import attach_service_replies, _shell_context, _student_alumnus
 
 
 def _student_or_claim(request):
@@ -231,7 +231,7 @@ def stories(request):
     if response:
         return response
     published = AlumniStory.objects.filter(status="published").select_related("author")
-    mine = AlumniStory.objects.filter(author=request.user)
+    mine = attach_service_replies(AlumniStory.objects.filter(author=request.user))
     return render(request, "directory/stories.html", _shell_context(request, alumnus=alumnus, stories=published, mine=mine))
 
 
@@ -334,7 +334,12 @@ def resources(request):
     if response:
         return response
     items = Resource.objects.filter(status="published")
-    return render(request, "directory/resources.html", _shell_context(request, alumnus=alumnus, resources=items))
+    mine = attach_service_replies(Resource.objects.filter(submitted_by=request.user))
+    return render(
+        request,
+        "directory/resources.html",
+        _shell_context(request, alumnus=alumnus, resources=items, mine=mine),
+    )
 
 
 @login_required

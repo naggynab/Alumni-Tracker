@@ -138,6 +138,11 @@ urlpatterns = [
         name="correction-review",
     ),
     path(
+        "reports/department/student-requests/",
+        student_views.student_request_replies,
+        name="student-requests",
+    ),
+    path(
         "reports/department/community-moderation/",
         student_views.community_moderation,
         name="community-moderation",

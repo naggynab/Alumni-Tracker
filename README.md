@@ -104,15 +104,24 @@ named group access without the admin site:
 The staff-only operational pages are available at `/reports/department/` and
 the following additive routes: `/reports/department/data-quality/`,
 `/reports/department/compare/`, `/reports/department/follow-ups/`,
-`/reports/department/verification/`, and `/reports/department/roles/`.
+`/reports/department/verification/`, `/reports/department/roles/`, and
+`/reports/department/student-requests/`. The last route lets department data
+editors review department-owned Student Services submissions, update their
+status, and send a reply that is saved in the request history and notifications.
+Department-only staff sign in with their approved email and password at
+`/accounts/department/login/`; alumni sign in with their college roll number at
+`/accounts/login/`. An alumni account that also has department access keeps both
+workspaces, while an unlinked department account cannot open Student Services.
 The signed-in profile checklist is at `/me/completeness/`. These pages reuse
 the app shell and do not modify the existing home page or public UI.
 
 Student Services is available at `/student/`. It includes correction requests,
 mentorship, moderated jobs and internships, event registration/submissions,
-and private contact requests. Students only see published community content;
-corrections, jobs, and events require staff review before publication or data
-changes.
+private contact requests, and request-status/reply history. Students only see
+published community content; corrections, jobs, and events require staff review
+before publication or data changes. Peer-to-peer mentorship and contact requests
+remain private between the participating alumni and are not placed in the
+department queue.
 
 The Student Services area also includes notifications, saved directory searches,
 private favorites, batch/community groups, moderated alumni stories, skills and
@@ -192,6 +201,10 @@ DEFAULT_FROM_EMAIL=your-sender@example.com
 
 Restart the server after saving the file. If the campus Google Workspace admin
 does not permit App Passwords, request the campus SMTP relay details instead.
+The same provider settings are required in production. If the reset page says it
+could not send the link, check the Coolify email-provider variables, sender
+verification (for Resend), or SMTP credentials and redeploy after correcting
+them; the application shows an error instead of returning a blank server error.
 
 ### Google sign-in
 

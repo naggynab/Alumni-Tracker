@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import secrets
 from datetime import timedelta
 
@@ -25,6 +26,9 @@ from .forms import (
     RegistrationForm,
     RollNumberPasswordResetForm,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def _code_hash(value):
@@ -63,7 +67,7 @@ class DepartmentEmailLoginView(SecureLoginView):
 
     def get_success_url(self):
         next_url = super().get_success_url()
-        if next_url.startswith("/reports/department/"):
+        if next_url and next_url.startswith("/reports/department/"):
             return next_url
         return reverse("directory:department-report")
 
@@ -115,7 +119,15 @@ class RollNumberPasswordResetView(FormView):
     success_url = reverse_lazy("account_reset_password_done")
 
     def form_valid(self, form):
-        form.save(self.request)
+        try:
+            form.save(self.request)
+        except Exception:
+            logger.exception("Password reset email delivery failed for roll-number request")
+            form.add_error(
+                None,
+                "We could not send the reset link right now. Please try again later or contact the department.",
+            )
+            return self.form_invalid(form)
         return super().form_valid(form)
 
 
@@ -126,6 +138,17 @@ class DepartmentPasswordResetView(PasswordResetView):
 
     def get_form_class(self):
         return DepartmentPasswordResetForm
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except Exception:
+            logger.exception("Password reset email delivery failed for department request")
+            form.add_error(
+                None,
+                "We could not send the reset link right now. Please try again later or contact the department.",
+            )
+            return self.form_invalid(form)
 
 
 def register(request):

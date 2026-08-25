@@ -28,11 +28,13 @@ The application is a Django 4.2 alumni directory for IOE Pulchowk. It provides:
 - Search by name, batch, field of study, current city, employer, and country.
 - Alumni registration using a pre-loaded identity record when one exists.
 - College roll-number/password login.
+- Department-only staff email/password login at `/accounts/department/login/`.
 - Recovery email and password-reset flow.
 - Optional Google sign-in.
 - Alumni profile editing and public-profile visibility.
 - Student Services at `/student/`.
 - Staff-only department reports and data-quality workflows.
+- Department data-editor replies for department-owned Student Services requests.
 - A read-only authenticated API under `/api/v1/`.
 
 Important source locations:
@@ -217,6 +219,15 @@ DEPARTMENT_ADMIN_GROUP=Alumni Administrators
 An email domain grants access to every matching authenticated account, so leave
 `DEPARTMENT_EMAIL_DOMAINS` empty unless this is deliberately approved.
 
+Department-only accounts should be created with
+`manage.py create_department_staff staff@example.com`; assign `Alumni Data Editors` only to
+staff who should review and reply to Student Services submissions. Alumni who
+also work for the department should keep their linked alumni record and use
+roll-number login so both Student Services and the Department Report remain
+available. The department request queue is intentionally limited to corrections,
+jobs, events, stories, and resources; private peer-to-peer mentorship and
+contact requests are not exposed to department staff.
+
 ## 6. Local development on Windows
 
 From the repository directory:
@@ -260,7 +271,7 @@ Run these before pushing changes:
 git diff --check
 ```
 
-The latest completed local suite ran 53 tests successfully.
+The latest completed local suite ran 71 tests successfully.
 
 Important workflows already covered by tests include:
 

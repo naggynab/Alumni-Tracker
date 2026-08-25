@@ -157,6 +157,19 @@ class DecisionForm(forms.Form):
     response_note = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 2}))
 
 
+class ServiceRequestReplyForm(forms.Form):
+    status = forms.ChoiceField(label="Decision")
+    message = forms.CharField(
+        label="Reply to the student",
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="This reply is shown in the student's notifications and request history.",
+    )
+
+    def __init__(self, status_choices, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["status"].choices = status_choices
+
+
 class ModerationForm(forms.Form):
     status = forms.ChoiceField()
 
