@@ -21,6 +21,7 @@
             <span>ALUMNI TRACKER</span>
         </div>
         <nav>
+            {% if not is_department_only_staff %}
             <a href="{% url 'directory:my-profile' %}" class="{% if nav_active == 'profile' %}active{% endif %}">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
                 My Profile
@@ -37,6 +38,7 @@
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 6h8M8 10h6"/></svg>
                 Student Services
             </a>
+            {% endif %}
             {% if is_department_staff %}
             <a href="{% url 'directory:department-report' %}" class="{% if nav_active == 'report' %}active{% endif %}">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg>

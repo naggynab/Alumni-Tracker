@@ -59,6 +59,7 @@
         <a class="btn btn-light btn-block" href="{% provider_login_url 'google' %}">Continue with Google</a>
     {% endif %}
 
+    <p class="auth-foot">Department staff? <a href="{% url 'department_login' %}">Staff sign in</a></p>
     <p class="auth-foot">Don't have an account? <a href="{% url 'accounts:register' %}">Register Now</a></p>
   </div>
 </div>

@@ -72,6 +72,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "directory.middleware.DepartmentOnlyAccessMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "directory.middleware.ActivityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",

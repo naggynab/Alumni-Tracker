@@ -1,9 +1,12 @@
+from io import StringIO
 from urllib.parse import unquote
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core import mail
+from django.core.management import call_command
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from allauth.core.exceptions import ImmediateHttpResponse
@@ -13,12 +16,15 @@ from allauth.account.models import EmailAddress
 from .adapters import RegisteredAlumniSocialAccountAdapter
 from .forms import (
     ClaimRecordForm,
+    DepartmentEmailLoginForm,
+    DepartmentPasswordResetForm,
     RegistrationForm,
     RollNumberLoginForm,
     RollNumberPasswordResetForm,
 )
 from directory.choices import FIELD_COMPUTER
 from directory.models import Alumnus
+from directory.permissions import is_department_only_staff
 
 User = get_user_model()
 
@@ -166,6 +172,139 @@ class RollNumberLoginTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn("Roll number and/or password is incorrect.", form.non_field_errors())
+
+
+@override_settings(DEPARTMENT_EMAILS=["staff@example.com"], DEPARTMENT_EMAIL_DOMAINS=[])
+class DepartmentStaffLoginTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="department-staff",
+            email="staff@example.com",
+            password="ValidPass1!",
+        )
+        EmailAddress.objects.create(
+            user=self.user,
+            email=self.user.email,
+            primary=True,
+            verified=True,
+        )
+
+    def test_staff_email_form_accepts_department_only_account(self):
+        form = DepartmentEmailLoginForm(
+            data={"login": "staff@example.com", "password": "ValidPass1!"},
+            request=RequestFactory().post(reverse("department_login")),
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.user, self.user)
+        self.assertTrue(is_department_only_staff(self.user))
+
+    def test_staff_email_form_rejects_non_department_account(self):
+        with self.settings(DEPARTMENT_EMAILS=[], DEPARTMENT_EMAIL_DOMAINS=[]):
+            form = DepartmentEmailLoginForm(
+                data={"login": "staff@example.com", "password": "ValidPass1!"},
+                request=RequestFactory().post(reverse("department_login")),
+            )
+            self.assertFalse(form.is_valid())
+            self.assertIn("department-only staff", str(form.errors))
+
+    def test_alumni_staff_account_must_use_roll_number_login(self):
+        Alumnus.objects.create(
+            first_name="Department",
+            last_name="Alumnus",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            class_roll_no="080BCT049",
+            user_account=self.user,
+        )
+        form = DepartmentEmailLoginForm(
+            data={"login": "staff@example.com", "password": "ValidPass1!"},
+            request=RequestFactory().post(reverse("department_login")),
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("department-only staff", str(form.errors))
+
+    def test_staff_login_redirects_to_department_report(self):
+        response = self.client.post(
+            reverse("department_login"),
+            {"login": "staff@example.com", "password": "ValidPass1!"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("directory:department-report"))
+        self.assertEqual(int(self.client.session["_auth_user_id"]), self.user.pk)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_staff_password_reset_uses_staff_email(self):
+        form = DepartmentPasswordResetForm(data={"email": "staff@example.com"})
+
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save(
+            RequestFactory().post(
+                reverse("department_reset_password"),
+                {"email": "staff@example.com"},
+            )
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["staff@example.com"])
+
+    def test_staff_only_user_cannot_open_student_services(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("directory:student-services"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], reverse("directory:department-report"))
+
+    def test_staff_only_sidebar_hides_alumni_services(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("directory:department-report"))
+
+        self.assertContains(response, "Department Report")
+        self.assertNotContains(response, "Student Services")
+        self.assertNotContains(response, "My Profile")
+
+    def test_alumni_staff_sidebar_keeps_both_workspaces(self):
+        Alumnus.objects.create(
+            first_name="Department",
+            last_name="Alumnus",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            class_roll_no="080BCT049",
+            user_account=self.user,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("directory:department-report"))
+
+        self.assertContains(response, "Department Report")
+        self.assertContains(response, "Student Services")
+
+
+class DepartmentStaffCommandTests(TestCase):
+    @patch(
+        "directory.management.commands.create_department_staff.getpass",
+        side_effect=["ValidPass1!", "ValidPass1!"],
+    )
+    def test_command_creates_staff_account_and_group(self, _getpass):
+        output = StringIO()
+
+        call_command(
+            "create_department_staff",
+            "staff@example.com",
+            stdout=output,
+        )
+
+        user = User.objects.get(email="staff@example.com")
+        self.assertTrue(user.check_password("ValidPass1!"))
+        self.assertTrue(
+            Group.objects.get(name="Department Staff").user_set.filter(pk=user.pk).exists()
+        )
+        self.assertFalse(Alumnus.objects.filter(user_account=user).exists())
+        self.assertIn("Department staff account ready", output.getvalue())
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")

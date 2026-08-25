@@ -21,6 +21,7 @@ from directory.choices import (
 from directory.models import Alumnus, ClaimReview
 
 from .authentication import normalize_roll_number
+from directory.permissions import is_department_only_staff
 
 User = get_user_model()
 
@@ -99,6 +100,29 @@ class RollNumberLoginForm(AllauthLoginForm):
         else:
             self.user = user
         return self.cleaned_data
+
+
+class DepartmentEmailLoginForm(AllauthLoginForm):
+    """Authenticate department-only staff with their approved email."""
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.user and not is_department_only_staff(self.user):
+            self.add_error(
+                None,
+                "This login is for approved department-only staff accounts.",
+            )
+            self.user = None
+        return cleaned
+
+
+class DepartmentPasswordResetForm(AllauthResetPasswordForm):
+    """Send password-reset mail only to department-only staff accounts."""
+
+    def clean_email(self):
+        email = super().clean_email()
+        self.users = [user for user in self.users if is_department_only_staff(user)]
+        return email
 
 
 class RegistrationForm(forms.Form):
