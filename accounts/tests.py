@@ -289,6 +289,7 @@ class DepartmentStaffLoginTests(TestCase):
         self.assertContains(response, "Department Report")
         self.assertContains(response, "Student Services")
         self.assertContains(response, "My Profile")
+        self.assertContains(response, "Department Staff")
         self.assertNotContains(response, "Edit Profile")
 
     def test_alumni_staff_sidebar_keeps_both_workspaces(self):

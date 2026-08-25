@@ -182,9 +182,10 @@ ul.errorlist{list-style:none;margin:6px 0 0;padding:0;color:#c53a2c;font-size:.8
 .sidebar nav a.active .ic{color:var(--accent-gold)}
 .sidebar .s-spacer{flex:1}
 .sidebar .s-user{margin:0 16px;padding:14px 16px;border-radius:12px;background:#e6ebfa;
-    display:flex;align-items:center;gap:12px}
+    display:flex;align-items:center;gap:12px;min-width:0;overflow:hidden}
 .sidebar .s-user img{width:34px;height:34px;border-radius:8px;object-fit:cover}
-.sidebar .s-user span{font-weight:600;font-size:.95rem;color:var(--ink)}
+.sidebar .s-user span{font-weight:600;font-size:.95rem;color:var(--ink);min-width:0;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
 .sidebar .s-logout{margin:12px 16px 22px;padding:10px 16px}
 .sidebar .s-logout a{display:flex;align-items:center;gap:12px;color:var(--danger);font-weight:600}
 .sidebar .s-logout a:hover{text-decoration:none;opacity:.85}
