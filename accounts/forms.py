@@ -11,6 +11,7 @@ from allauth.account.forms import (
     LoginForm as AllauthLoginForm,
     ResetPasswordForm as AllauthResetPasswordForm,
 )
+from allauth.account.models import EmailAddress
 
 from directory.choices import (
     FIELD_OF_STUDY_CHOICES,
@@ -343,6 +344,7 @@ class RollNumberPasswordResetForm(forms.Form):
     def clean_roll_number(self):
         roll = normalize_roll_number(self.cleaned_data["roll_number"])
         self.users = []
+        self.reset_email = ""
         try:
             alumnus = Alumnus.objects.select_related("user_account").get(
                 class_roll_no__iexact=roll,
@@ -355,14 +357,26 @@ class RollNumberPasswordResetForm(forms.Form):
                 )
             return roll
         user = alumnus.user_account
-        if user.is_active and user.email:
+        # The registration form stores the recovery address on User and in
+        # allauth's primary EmailAddress. Do not use Alumnus.email here: that
+        # field may contain a separate directory contact address.
+        recovery_email = (user.email or "").strip()
+        if not recovery_email:
+            recovery_email = (
+                EmailAddress.objects.filter(user=user, primary=True)
+                .values_list("email", flat=True)
+                .first()
+                or ""
+            ).strip()
+        if user.is_active and recovery_email:
             self.users = [user]
+            self.reset_email = recovery_email
         return roll
 
     def save(self, request, **kwargs):
         if self.users:
             AllauthResetPasswordForm._send_password_reset_mail(
-                self, request, self.users[0].email, self.users
+                self, request, self.reset_email, self.users
             )
         return self.cleaned_data["roll_number"]
 

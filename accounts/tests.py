@@ -1,13 +1,22 @@
 from urllib.parse import unquote
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.core import mail
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.account.forms import ResetPasswordForm, SetPasswordForm
 from allauth.account.models import EmailAddress
 
-from .forms import ClaimRecordForm, RegistrationForm, RollNumberLoginForm
+from .adapters import RegisteredAlumniSocialAccountAdapter
+from .forms import (
+    ClaimRecordForm,
+    RegistrationForm,
+    RollNumberLoginForm,
+    RollNumberPasswordResetForm,
+)
 from directory.choices import FIELD_COMPUTER
 from directory.models import Alumnus
 
@@ -131,6 +140,99 @@ class RollNumberLoginTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn("Roll number and/or password is incorrect.", form.non_field_errors())
+
+    def test_login_rejects_a_preloaded_record_until_it_is_registered(self):
+        User.objects.create_user(
+            username="unregistered-user",
+            email="unregistered@example.com",
+            password="ValidPass1!",
+        )
+        Alumnus.objects.create(
+            first_name="Unregistered",
+            last_name="Alumnus",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            class_roll_no="080BCT048",
+        )
+
+        request = RequestFactory().post(
+            reverse("account_login"),
+            {"login": "080BCT048", "password": "ValidPass1!"},
+        )
+        form = RollNumberLoginForm(
+            data={"login": "080BCT048", "password": "ValidPass1!"},
+            request=request,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("Roll number and/or password is incorrect.", form.non_field_errors())
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class RollNumberPasswordResetTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="roll-reset-user",
+            email="reset-user@example.com",
+            password="ValidPass1!",
+        )
+        self.record = Alumnus.objects.create(
+            first_name="Bikash",
+            last_name="Shrestha",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            class_roll_no="080BCT047",
+            email="record-recovery@example.com",
+            user_account=self.user,
+        )
+
+    def test_reset_uses_registered_email_when_user_email_is_empty(self):
+        self.user.email = ""
+        self.user.save(update_fields=["email"])
+        EmailAddress.objects.create(
+            user=self.user,
+            email="registered-recovery@example.com",
+            primary=True,
+            verified=True,
+        )
+
+        form = RollNumberPasswordResetForm(data={"roll_number": "080BCT047"})
+
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save(
+            RequestFactory().post(
+                reverse("account_reset_password"),
+                {"roll_number": "080BCT047"},
+            )
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["registered-recovery@example.com"])
+
+
+class SocialLoginRegistrationGateTests(TestCase):
+    def test_unregistered_social_login_is_rejected(self):
+        request = RequestFactory().get(reverse("account_login"))
+        user = User.objects.create_user(
+            username="unregistered-social-user",
+            email="unregistered-social@example.com",
+            password="ValidPass1!",
+        )
+        sociallogin = SimpleNamespace(user=user)
+        adapter = RegisteredAlumniSocialAccountAdapter()
+
+        with patch("accounts.adapters.messages.error") as add_message:
+            with self.assertRaises(ImmediateHttpResponse) as raised:
+                adapter.pre_social_login(request, sociallogin)
+
+        self.assertEqual(raised.exception.response.status_code, 302)
+        self.assertEqual(raised.exception.response.url, reverse("accounts:register"))
+        add_message.assert_called_once()
+
+    def test_social_signup_is_closed(self):
+        adapter = RegisteredAlumniSocialAccountAdapter()
+
+        self.assertFalse(adapter.is_open_for_signup(None, None))
 
 
 class RegistrationSecurityTests(TestCase):

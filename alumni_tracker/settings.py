@@ -239,6 +239,7 @@ if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
             "key": "",
         },
     }
+SOCIALACCOUNT_ADAPTER = "accounts.adapters.RegisteredAlumniSocialAccountAdapter"
 SOCIALACCOUNT_LOGIN_ON_GET = True
 # Google is an identity provider with verified email addresses. When it is
 # configured, allow a verified Google email to sign in to the matching existing
