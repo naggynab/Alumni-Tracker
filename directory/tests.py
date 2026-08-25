@@ -16,20 +16,16 @@ from .choices import (
 )
 from .filters import AlumnusFilter
 from .models import (
-    AlumniEvent,
     Alumnus,
     ClaimReview,
     ContactRequest,
-    EventRegistration,
     FollowUp,
     JobPosting,
-    MentorshipProfile,
-    MentorshipRequest,
 )
 from .permissions import is_department_data_editor, is_department_staff
 from .profile import profile_completeness
 from .stats import build_comparison, build_data_quality, build_report
-from .student_forms import AlumniEventForm, ContactRequestForm, JobPostingForm
+from .student_forms import ContactRequestForm, JobPostingForm
 
 
 User = get_user_model()
@@ -292,16 +288,16 @@ class WorkflowLogicTests(TestCase):
 
 class StudentFeatureLogicTests(TestCase):
     def setUp(self):
-        self.mentor_user = User.objects.create_user(
-            username="mentor-student", email="mentor@example.com", password="ValidPass1!"
+        self.contact_user = User.objects.create_user(
+            username="contact-student", email="contact@example.com", password="ValidPass1!"
         )
         self.mentee_user = User.objects.create_user(
             username="mentee-student", email="mentee@example.com", password="ValidPass1!"
         )
-        self.mentor = Alumnus.objects.create(
+        self.contact_alumnus = Alumnus.objects.create(
             first_name="Experienced", last_name="Alumnus", batch="070",
             field_of_study=FIELD_COMPUTER, class_roll_no="070BCT001",
-            user_account=self.mentor_user, is_public=True,
+            user_account=self.contact_user, is_public=True,
         )
         self.mentee = Alumnus.objects.create(
             first_name="Current", last_name="Student", batch="080",
@@ -325,37 +321,24 @@ class StudentFeatureLogicTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertTrue(form.non_field_errors())
 
-    def test_mentorship_request_links_mentee_and_mentor(self):
-        profile = MentorshipProfile.objects.create(
-            alumnus=self.mentor, expertise="Career planning", max_mentees=2
-        )
-        request_record = MentorshipRequest.objects.create(
-            mentor=self.mentor, mentee=self.mentee, message="I would appreciate guidance."
-        )
-        self.assertTrue(profile.is_available)
-        self.assertEqual(request_record.mentor, self.mentor)
-        self.assertEqual(request_record.mentee, self.mentee)
+    def test_student_services_excludes_removed_features(self):
+        self.client.force_login(self.mentee_user)
+        response = self.client.get(reverse("directory:student-services"))
 
-    def test_event_registration_is_unique_per_attendee(self):
-        from django.utils import timezone
-        from datetime import timedelta
-
-        event = AlumniEvent.objects.create(
-            organizer=self.mentor_user,
-            title="Batch reunion",
-            description="Meet the batch.",
-            starts_at=timezone.now() + timedelta(days=2),
-            status="published",
-        )
-        EventRegistration.objects.create(event=event, attendee=self.mentee_user)
-        with self.assertRaises(Exception):
-            EventRegistration.objects.create(event=event, attendee=self.mentee_user)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Jobs &amp; internships")
+        self.assertNotContains(response, "Mentorship")
+        self.assertNotContains(response, "Events")
+        self.assertNotContains(response, "/student/mentorship/")
+        self.assertNotContains(response, "/student/events/")
+        self.assertEqual(self.client.get("/student/mentorship/").status_code, 404)
+        self.assertEqual(self.client.get("/student/events/").status_code, 404)
 
     def test_contact_request_does_not_share_details_before_acceptance(self):
         contact = ContactRequest.objects.create(
             sender=self.mentee_user,
-            recipient=self.mentor_user,
+            recipient=self.contact_user,
             message="Could I ask about your career path?",
         )
         self.assertEqual(contact.status, "pending")
-        self.assertEqual(contact.recipient, self.mentor_user)
+        self.assertEqual(contact.recipient, self.contact_user)

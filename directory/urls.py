@@ -42,35 +42,8 @@ urlpatterns = [
         student_views.correction_requests,
         name="correction-requests",
     ),
-    path(
-        "student/mentorship/",
-        student_views.mentorship_hub,
-        name="mentorship",
-    ),
-    path(
-        "student/mentorship/profile/",
-        student_views.mentorship_profile,
-        name="mentorship-profile",
-    ),
-    path(
-        "student/mentorship/request/<int:mentor_id>/",
-        student_views.mentorship_request,
-        name="mentorship-request",
-    ),
-    path(
-        "student/mentorship/request/<int:request_id>/decision/",
-        student_views.mentorship_decision,
-        name="mentorship-decision",
-    ),
     path("student/jobs/", student_views.job_board, name="job-board"),
     path("student/jobs/submit/", student_views.job_submit, name="job-submit"),
-    path("student/events/", student_views.event_list, name="event-list"),
-    path("student/events/submit/", student_views.event_submit, name="event-submit"),
-    path(
-        "student/events/<int:event_id>/registration/",
-        student_views.event_registration,
-        name="event-registration",
-    ),
     path(
         "student/contacts/",
         student_views.contact_requests,
