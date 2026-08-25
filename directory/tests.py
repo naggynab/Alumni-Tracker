@@ -195,6 +195,28 @@ class DepartmentAccessTests(TestCase):
         group.user_set.add(self.user)
         self.assertTrue(is_department_staff(self.user))
 
+    def test_department_staff_profile_hides_academic_sections(self):
+        group = Group.objects.create(name="Department Staff")
+        group.user_set.add(self.user)
+        Alumnus.objects.create(
+            first_name="Department",
+            last_name="Officer",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            class_roll_no="999BCT001",
+            user_account=self.user,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("directory:my-profile"))
+
+        self.assertContains(response, "Personal Information")
+        self.assertContains(response, "Contact Information")
+        self.assertContains(response, "Professional Information")
+        self.assertNotContains(response, "Academic Information")
+        self.assertNotContains(response, "Graduation Year")
+        self.assertNotContains(response, "Higher Studies Information")
+
     def test_configured_domain_is_allowed(self):
         with self.settings(DEPARTMENT_EMAIL_DOMAINS=["example.com"]):
             self.assertTrue(is_department_staff(self.user))
