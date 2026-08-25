@@ -47,16 +47,16 @@
             {% endif %}
         </nav>
         <div class="s-spacer"></div>
-        <div class="s-user">
+        <a class="s-user" href="{% url 'directory:my-profile' %}" aria-label="{% if is_department_only_staff %}Open staff profile{% else %}Open my profile{% endif %}">
             <img src="{% static 'pictures/default_user.png' %}" alt="">
             {% if app_alumnus %}
-            <span title="{{ app_alumnus.full_name }}">{{ app_alumnus.full_name }}</span>
+            <span>{{ app_alumnus.full_name }}</span>
             {% elif is_department_only_staff %}
-            <span title="{{ user.email }}">Department Staff</span>
+            <span>Staff</span>
             {% else %}
-            <span title="{{ user.email }}">{{ user.email }}</span>
+            <span>{{ user.email }}</span>
             {% endif %}
-        </div>
+        </a>
         <div class="s-logout">
             <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}
                 <button type="submit">
