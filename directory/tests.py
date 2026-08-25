@@ -28,6 +28,8 @@ from .models import (
     MentorshipRequest,
     Notification,
     ServiceRequestReply,
+    Survey,
+    SurveyResponse,
 )
 from .permissions import is_department_data_editor, is_department_staff
 from .profile import profile_completeness
@@ -217,6 +219,26 @@ class DepartmentAccessTests(TestCase):
         self.assertNotContains(response, "Graduation Year")
         self.assertNotContains(response, "Higher Studies Information")
 
+    def test_department_staff_student_services_shows_authority_workspace(self):
+        staff_group = Group.objects.create(name="Department Staff")
+        editor_group = Group.objects.create(name="Alumni Data Editors")
+        staff_group.user_set.add(self.user)
+        editor_group.user_set.add(self.user)
+        Alumnus.objects.create(
+            first_name="Department",
+            last_name="Officer",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            user_account=self.user,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("directory:student-services"))
+
+        self.assertContains(response, "Department authority workspace")
+        self.assertContains(response, "Student request desk")
+        self.assertContains(response, "Student recommendations &amp; feedback")
+
     def test_configured_domain_is_allowed(self):
         with self.settings(DEPARTMENT_EMAIL_DOMAINS=["example.com"]):
             self.assertTrue(is_department_staff(self.user))
@@ -325,6 +347,28 @@ class StudentServiceReplyTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "PRIVATE_CONTACT_REQUEST_SHOULD_NOT_APPEAR")
+
+    def test_department_editor_can_review_student_feedback_without_identity(self):
+        survey = Survey.objects.create(
+            title="Student recommendations",
+            description="Tell the department what to improve.",
+            status="published",
+            questions=[{"key": "recommendation", "label": "Recommendation"}],
+            created_by=self.editor,
+        )
+        SurveyResponse.objects.create(
+            survey=survey,
+            respondent=self.student,
+            answers={"recommendation": "Please add more career workshops."},
+        )
+        self.client.force_login(self.editor)
+
+        response = self.client.get(reverse("directory:department-feedback"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Student recommendations")
+        self.assertContains(response, "Please add more career workshops.")
+        self.assertNotContains(response, "student@example.com")
 
 
 class ReportAggregationTests(TestCase):

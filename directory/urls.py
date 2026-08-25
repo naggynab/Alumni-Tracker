@@ -148,6 +148,7 @@ urlpatterns = [
         name="community-moderation",
     ),
     path("reports/department/content-moderation/", community_views.community_content_moderation, name="content-moderation"),
+    path("reports/department/feedback/", community_views.department_feedback, name="department-feedback"),
     path("reports/department/conflicts/", community_views.data_conflicts, name="data-conflicts"),
     path(
         "reports/department/export/<str:breakdown>/",

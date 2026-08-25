@@ -5,6 +5,21 @@
 <h1 class="page-title">Student Services</h1>
 <p class="page-sub">Connect with the alumni community, keep your record accurate, and find opportunities.</p>
 
+{% if is_department_staff %}
+<section class="panel report-note">
+    <strong>Department authority workspace</strong>
+    <p class="muted">Handle student information corrections and review student feedback without entering private peer-to-peer requests.</p>
+    {% if can_edit_workflows %}
+    <div class="service-actions">
+        <a class="btn btn-primary" href="{% url 'directory:student-requests' %}">Student request desk</a>
+        <a class="btn btn-secondary" href="{% url 'directory:department-feedback' %}">Student recommendations &amp; feedback</a>
+    </div>
+    {% else %}
+    <p class="muted">Your account has report access only. A department data editor can handle requests and feedback.</p>
+    {% endif %}
+</section>
+{% endif %}
+
 <div class="service-grid">
     <section class="panel service-card">
         <div class="panel-title">Correct my information</div>

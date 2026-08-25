@@ -104,10 +104,11 @@ named group access without the admin site:
 The staff-only operational pages are available at `/reports/department/` and
 the following additive routes: `/reports/department/data-quality/`,
 `/reports/department/compare/`, `/reports/department/follow-ups/`,
-`/reports/department/verification/`, `/reports/department/roles/`, and
-`/reports/department/student-requests/`. The last route lets department data
-editors review department-owned Student Services submissions, update their
-status, and send a reply that is saved in the request history and notifications.
+`/reports/department/verification/`, `/reports/department/roles/`,
+`/reports/department/student-requests/`, and `/reports/department/feedback/`.
+Department data editors can review department-owned Student Services
+submissions, update their status, send durable replies, and review anonymized
+student survey recommendations and feedback.
 Department-only staff sign in with their approved email and password at
 `/accounts/department/login/`; alumni sign in with their college roll number at
 `/accounts/login/`. An alumni account that also has department access keeps both

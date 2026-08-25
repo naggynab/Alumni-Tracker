@@ -35,6 +35,7 @@ The application is a Django 4.2 alumni directory for IOE Pulchowk. It provides:
 - Student Services at `/student/`.
 - Staff-only department reports and data-quality workflows.
 - Department data-editor replies for department-owned Student Services requests.
+- An anonymized department feedback view for student survey recommendations.
 - A read-only authenticated API under `/api/v1/`.
 
 Important source locations:

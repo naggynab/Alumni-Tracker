@@ -1,0 +1,25 @@
+{% extends "base_app.html" %}
+{% block title %}Student Feedback{% endblock %}
+{% block content %}
+<h1 class="page-title">Student Recommendations &amp; Feedback</h1>
+<p class="page-sub">Review student feedback collected through published department surveys. Respondent identity is intentionally hidden.</p>
+
+<div class="queue-tabs">
+    <a class="btn {% if not selected_survey %}btn-primary{% else %}btn-light{% endif %}" href="{% url 'directory:department-feedback' %}">All surveys</a>
+    {% for survey in surveys %}
+        <a class="btn {% if selected_survey.pk == survey.pk %}btn-primary{% else %}btn-light{% endif %}" href="?survey={{ survey.pk }}">{{ survey.title }} ({{ survey.response_count }})</a>
+    {% endfor %}
+</div>
+
+{% for response in responses %}
+<section class="panel stat-panel">
+    <div class="panel-title">{{ response.survey.title }}</div>
+    <p class="muted">Submitted {{ response.created_at|date:"Y-m-d H:i" }}</p>
+    <ul class="workflow-list">
+        {% for answer in response.answers %}<li><strong>{{ answer.label }}</strong><span>{{ answer.value }}</span></li>{% endfor %}
+    </ul>
+</section>
+{% empty %}
+<section class="panel"><p class="bar-empty">No student feedback has been submitted yet.</p></section>
+{% endfor %}
+{% endblock %}
