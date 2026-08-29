@@ -33,7 +33,7 @@ from .models import (
 )
 from .permissions import is_department_data_editor, is_department_staff
 from .profile import profile_completeness
-from .stats import build_comparison, build_data_quality, build_report
+from .stats import build_comparison, build_data_quality, build_location_maps, build_report
 from .student_forms import AlumniEventForm, ContactRequestForm, JobPostingForm
 
 
@@ -392,6 +392,39 @@ class ReportAggregationTests(TestCase):
         self.assertEqual(report["abroad"], 1)
         self.assertEqual(report["by_field"][0]["in_nepal"], 1)
         self.assertEqual(report["by_field"][0]["abroad"], 1)
+
+    def test_location_maps_aggregate_countries_and_mapped_nepal_cities(self):
+        Alumnus.objects.create(
+            first_name="Nepal Two", last_name="Alumnus", current_country="NP",
+            current_city="Kathmandu",
+        )
+        Alumnus.objects.create(
+            first_name="USA Two", last_name="Alumnus", current_country="US",
+        )
+        maps = build_location_maps(Alumnus.objects.all())
+
+        self.assertEqual(
+            [(point["location"], point["count"]) for point in maps["world"][:2]],
+            [("Nepal", 2), ("United States of America", 2)],
+        )
+        self.assertEqual(maps["nepal"][0]["location"], "Kathmandu")
+        self.assertEqual(maps["nepal"][0]["count"], 2)
+        self.assertEqual(maps["nepal"][0]["percentage"], 100.0)
+
+    def test_location_maps_handle_country_aliases_and_unknown_cities(self):
+        Alumnus.objects.create(
+            first_name="Alias", last_name="Country", current_country="USA",
+        )
+        Alumnus.objects.create(
+            first_name="Unknown", last_name="City", current_country="NP",
+            current_city="Some Rural Municipality",
+        )
+        maps = build_location_maps(Alumnus.objects.all())
+
+        usa = next(point for point in maps["world"] if point["location"] == "United States of America")
+        self.assertEqual(usa["count"], 2)
+        self.assertEqual(maps["nepal"][0]["location"], "Kathmandu")
+        self.assertEqual(maps["nepal_unmapped"], 1)
 
     def test_report_uses_canonical_study_institution(self):
         report = build_report(Alumnus.objects.all())
