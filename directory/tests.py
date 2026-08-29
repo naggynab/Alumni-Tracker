@@ -3,6 +3,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from .choices import (
     FIELD_COMPUTER,
@@ -247,6 +248,34 @@ class DepartmentAccessTests(TestCase):
         self.user.email = "officer@ioe.edu.np"
         self.user.save(update_fields=["email"])
         self.assertFalse(is_department_staff(self.user))
+
+    def test_updated_profiles_tool_lists_recently_updated_profiles(self):
+        department_group = Group.objects.create(name="Department Staff")
+        department_group.user_set.add(self.user)
+        older = Alumnus.objects.create(
+            first_name="Older", last_name="Profile", date_modified=timezone.now()
+        )
+        recent = Alumnus.objects.create(
+            first_name="Recent", last_name="Profile", date_modified=timezone.now()
+        )
+        from datetime import timedelta
+
+        Alumnus.objects.filter(pk=older.pk).update(
+            date_modified=timezone.now() - timedelta(days=31)
+        )
+        Alumnus.objects.filter(pk=recent.pk).update(
+            date_modified=timezone.now() - timedelta(days=1)
+        )
+        self.client.force_login(self.user)
+
+        report = self.client.get(reverse("directory:department-report"))
+        self.assertContains(report, "Last updated profiles (1)")
+
+        response = self.client.get(reverse("directory:department-updated-profiles"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "1 profile updated")
+        self.assertContains(response, "Recent Profile")
+        self.assertNotContains(response, "Older Profile")
 
 
 @override_settings(DEPARTMENT_EMAILS=[], DEPARTMENT_EMAIL_DOMAINS=[])

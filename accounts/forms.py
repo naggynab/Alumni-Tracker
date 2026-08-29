@@ -5,6 +5,7 @@ from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError
+from django.forms import inlineformset_factory
 from allauth.account import app_settings as allauth_settings
 from allauth.account.adapter import get_adapter
 from allauth.account.forms import (
@@ -18,7 +19,7 @@ from directory.choices import (
     PROGRAM_CHOICES,
     PROGRAM_TO_FIELD,
 )
-from directory.models import Alumnus, ClaimReview
+from directory.models import Alumnus, ClaimReview, FurtherStudy
 
 from .authentication import normalize_roll_number
 from directory.permissions import is_department_only_staff
@@ -408,6 +409,27 @@ class RollNumberPasswordResetForm(forms.Form):
 class AlumnusProfileForm(forms.ModelForm):
     """Fields an alumnus may edit on their own claimed record (Edit Profile.svg)."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        current_status = (
+            self.data.get("employment_status")
+            if self.is_bound
+            else self.instance.employment_status
+        )
+        if current_status != "Employed":
+            for field_name in ("employer_organization", "job_title"):
+                self.fields[field_name].widget.attrs["disabled"] = "disabled"
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("employment_status") != "Employed":
+            # Organization and designation are only meaningful for employed
+            # profiles. Clear them server-side even if a client bypasses the
+            # disabled controls in the edit form.
+            cleaned["employer_organization"] = ""
+            cleaned["job_title"] = ""
+        return cleaned
+
     class Meta:
         model = Alumnus
         fields = [
@@ -420,9 +442,6 @@ class AlumnusProfileForm(forms.ModelForm):
             "employment_status",
             "employer_organization",
             "job_title",
-            "further_study_institution",
-            "further_study_degree",
-            "further_study_country",
             "is_public",
         ]
         labels = {
@@ -434,9 +453,6 @@ class AlumnusProfileForm(forms.ModelForm):
             "employer_organization": "Current Organization",
             "job_title": "Designation",
             "employment_status": "Employment Status",
-            "further_study_institution": "University Name (Post-Grad)",
-            "further_study_degree": "Degree Obtained",
-            "further_study_country": "Country of Study",
             "is_public": "Show my profile in the public yearbook",
         }
         widgets = {
@@ -446,6 +462,67 @@ class AlumnusProfileForm(forms.ModelForm):
             "current_city": forms.TextInput(attrs={"placeholder": "City"}),
             "employer_organization": forms.TextInput(attrs={"placeholder": "Organization"}),
             "job_title": forms.TextInput(attrs={"placeholder": "Designation"}),
-            "further_study_institution": forms.TextInput(attrs={"placeholder": "Optional"}),
-            "further_study_degree": forms.TextInput(attrs={"placeholder": "e.g. MBA, M.Tech"}),
         }
+
+
+class FurtherStudyForm(forms.ModelForm):
+    """A single degree record shown inside a degree-level formset."""
+
+    degree_level = forms.CharField(widget=forms.HiddenInput(), required=False)
+
+    def __init__(self, *args, degree_level=None, **kwargs):
+        self.fixed_degree_level = degree_level
+        super().__init__(*args, **kwargs)
+        if degree_level:
+            self.initial["degree_level"] = degree_level
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.fixed_degree_level:
+            cleaned["degree_level"] = self.fixed_degree_level
+        return cleaned
+
+    class Meta:
+        model = FurtherStudy
+        fields = ["degree_level", "institution", "degree", "country"]
+        labels = {
+            "institution": "University / institution",
+            "degree": "Degree obtained",
+            "country": "Country of study",
+        }
+        widgets = {
+            "institution": forms.TextInput(
+                attrs={"placeholder": "University or institution"}
+            ),
+            "degree": forms.TextInput(
+                attrs={"placeholder": "e.g. B.E., M.Tech, PhD"}
+            ),
+        }
+
+
+_FURTHER_STUDY_FORMSET_FIELDS = [
+    "degree_level",
+    "institution",
+    "degree",
+    "country",
+]
+
+FurtherStudyFormSet = inlineformset_factory(
+    Alumnus,
+    FurtherStudy,
+    form=FurtherStudyForm,
+    fields=_FURTHER_STUDY_FORMSET_FIELDS,
+    extra=1,
+    can_delete=True,
+)
+
+SingleFurtherStudyFormSet = inlineformset_factory(
+    Alumnus,
+    FurtherStudy,
+    form=FurtherStudyForm,
+    fields=_FURTHER_STUDY_FORMSET_FIELDS,
+    extra=1,
+    max_num=1,
+    validate_max=True,
+    can_delete=True,
+)
