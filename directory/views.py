@@ -20,7 +20,12 @@ from .permissions import (
     department_required,
 )
 from .profile import profile_completeness
-from .stats import build_comparison, build_data_quality, build_report
+from .stats import (
+    build_comparison,
+    build_data_quality,
+    build_location_maps,
+    build_report,
+)
 from .workflow_forms import (
     ClaimReviewForm,
     ComparisonForm,
@@ -123,6 +128,7 @@ def department_report(request):
     context = {
         "form": form,
         "report": build_report(queryset),
+        "maps": build_location_maps(queryset),
         "selection": form.summary(),
         "is_filtered": any(form.data.get(name) for name in form.fields),
         "campus_total": Alumnus.objects.count(),

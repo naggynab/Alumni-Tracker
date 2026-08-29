@@ -28,6 +28,228 @@ _COUNTRIES = Countries()
 NEPAL = "NP"
 TOP_N = 12
 
+# Representative centroids keep map rendering deterministic and avoid a
+# geocoding request on every report load. The catalog covers the locations
+# commonly present in the imported alumni data and the most likely expansion
+# countries for manually maintained records.
+COUNTRY_COORDINATES = {
+    "AE": (24.4539, 54.3773),
+    "AU": (-25.2744, 133.7751),
+    "BD": (23.6850, 90.3563),
+    "BE": (50.8503, 4.3517),
+    "CA": (56.1304, -106.3468),
+    "CH": (46.8182, 8.2275),
+    "CN": (35.8617, 104.1954),
+    "DE": (51.1657, 10.4515),
+    "DK": (56.2639, 9.5018),
+    "ES": (40.4637, -3.7492),
+    "FI": (61.9241, 25.7482),
+    "FR": (46.2276, 2.2137),
+    "GB": (55.3781, -3.4360),
+    "HK": (22.3193, 114.1694),
+    "IN": (20.5937, 78.9629),
+    "IT": (41.8719, 12.5674),
+    "JP": (36.2048, 138.2529),
+    "KR": (35.9078, 127.7669),
+    "KW": (29.3117, 47.4818),
+    "LK": (7.8731, 80.7718),
+    "MY": (4.2105, 101.9758),
+    "NP": (28.3949, 84.1240),
+    "NL": (52.1326, 5.2913),
+    "NO": (60.4720, 8.4689),
+    "NZ": (-40.9006, 174.8860),
+    "OM": (21.4735, 55.9754),
+    "PH": (12.8797, 121.7740),
+    "PK": (30.3753, 69.3451),
+    "QA": (25.3548, 51.1839),
+    "RU": (61.5240, 105.3188),
+    "SA": (23.8859, 45.0792),
+    "SE": (60.1282, 18.6435),
+    "SG": (1.3521, 103.8198),
+    "TH": (15.8700, 100.9925),
+    "TR": (38.9637, 35.2433),
+    "US": (37.0902, -95.7129),
+    "ZA": (-30.5595, 22.9375),
+}
+
+COUNTRY_ALIASES = {
+    "australia": "AU",
+    "canada": "CA",
+    "china": "CN",
+    "germany": "DE",
+    "hong kong": "HK",
+    "india": "IN",
+    "japan": "JP",
+    "malaysia": "MY",
+    "nepal": "NP",
+    "new zealand": "NZ",
+    "pakistan": "PK",
+    "qatar": "QA",
+    "saudi arabia": "SA",
+    "singapore": "SG",
+    "south korea": "KR",
+    "sri lanka": "LK",
+    "thailand": "TH",
+    "uae": "AE",
+    "united arab emirates": "AE",
+    "united kingdom": "GB",
+    "uk": "GB",
+    "united states": "US",
+    "united states of america": "US",
+    "usa": "US",
+}
+
+NEPAL_CITY_COORDINATES = {
+    "bhaktapur": (27.6710, 85.4298),
+    "bharatpur": (27.6833, 84.4333),
+    "birgunj": (27.0104, 84.8770),
+    "birtamode": (26.6420, 87.9914),
+    "biratnagar": (26.4525, 87.2718),
+    "butwal": (27.7000, 83.4500),
+    "dhangadhi": (28.6833, 80.6000),
+    "dharan": (26.8124, 87.2836),
+    "hetauda": (27.4284, 85.0322),
+    "janakpur": (26.7288, 85.9263),
+    "kathmandu": (27.7172, 85.3240),
+    "lalitpur": (27.6588, 85.3247),
+    "nepalgunj": (28.0500, 81.6167),
+    "pokhara": (28.2096, 83.9856),
+    "siddharthanagar": (27.5000, 83.4500),
+    "tulsipur": (28.1300, 82.3000),
+}
+
+
+def _country_code(value):
+    """Normalize ISO codes and common country-name variants for mapping."""
+    raw = str(value or "").strip()
+    upper = raw.upper()
+    if upper in COUNTRY_COORDINATES:
+        return upper
+    return COUNTRY_ALIASES.get(raw.casefold(), "")
+
+
+def _location_key(value):
+    """Return a stable lookup key without changing the displayed label."""
+    return " ".join(str(value or "").strip().casefold().split())
+
+
+def _map_radius(count, largest, minimum=7, maximum=30):
+    """Scale a grouped count perceptually so larger populations stand out."""
+    import math
+
+    if not count or not largest:
+        return minimum
+    return round(minimum + (maximum - minimum) * math.sqrt(count / largest), 1)
+
+
+def _map_point(location, latitude, longitude, count, total, largest):
+    return {
+        "location": location,
+        "latitude": latitude,
+        "longitude": longitude,
+        "count": count,
+        "percentage": _percentage(count, total),
+        "radius": _map_radius(count, largest),
+    }
+
+
+def build_location_maps(queryset):
+    """Build bounded, aggregate-only datasets for the department maps.
+
+    Country and Nepal-city counts are grouped in the database first. Only
+    distinct grouped rows are then normalized and matched to local centroid
+    catalogs, so missing or unfamiliar locations never break the report.
+    """
+    total = queryset.count()
+    country_groups = list(
+        queryset.exclude(current_country="")
+        .values("current_country")
+        .annotate(total=Count("id"))
+    )
+    country_counts = {}
+    country_labels = {}
+    unmapped_world = 0
+    for row in country_groups:
+        code = _country_code(row["current_country"])
+        if not code:
+            unmapped_world += row["total"]
+            continue
+        country_counts[code] = country_counts.get(code, 0) + row["total"]
+        country_labels.setdefault(code, _country_label(code))
+
+    largest_country = max(country_counts.values(), default=0)
+    world = [
+        _map_point(
+            country_labels[code],
+            COUNTRY_COORDINATES[code][0],
+            COUNTRY_COORDINATES[code][1],
+            count,
+            total,
+            largest_country,
+        )
+        for code, count in sorted(
+            country_counts.items(), key=lambda item: (-item[1], item[0])
+        )
+    ]
+
+    nepal_queryset = queryset.filter(current_country=NEPAL)
+    nepal_total = nepal_queryset.count()
+    city_groups = list(
+        nepal_queryset.exclude(current_city="")
+        .values("current_city_canonical", "current_city")
+        .annotate(total=Count("id"))
+    )
+    location_counts = {}
+    location_labels = {}
+    for row in city_groups:
+        key = _location_key(row["current_city_canonical"] or row["current_city"])
+        if key not in NEPAL_CITY_COORDINATES:
+            continue
+        location_counts[key] = location_counts.get(key, 0) + row["total"]
+        location_labels.setdefault(key, row["current_city"] or row["current_city_canonical"])
+
+    # Imported roster rows may have a permanent district but no current city.
+    # Use that existing field as a documented fallback for the Nepal map.
+    district_groups = list(
+        nepal_queryset.filter(current_city="")
+        .exclude(permanent_district="")
+        .values("permanent_district")
+        .annotate(total=Count("id"))
+    )
+    unmapped_nepal = 0
+    for row in district_groups:
+        key = _location_key(row["permanent_district"])
+        if key not in NEPAL_CITY_COORDINATES:
+            unmapped_nepal += row["total"]
+            continue
+        location_counts[key] = location_counts.get(key, 0) + row["total"]
+        location_labels.setdefault(key, row["permanent_district"])
+
+    mapped_nepal = sum(location_counts.values())
+    unmapped_nepal += max(nepal_total - mapped_nepal - unmapped_nepal, 0)
+    largest_nepal = max(location_counts.values(), default=0)
+    nepal = [
+        _map_point(
+            location_labels[key],
+            NEPAL_CITY_COORDINATES[key][0],
+            NEPAL_CITY_COORDINATES[key][1],
+            count,
+            nepal_total,
+            largest_nepal,
+        )
+        for key, count in sorted(
+            location_counts.items(), key=lambda item: (-item[1], item[0])
+        )
+    ]
+    return {
+        "world": world,
+        "nepal": nepal,
+        "world_total": sum(country_counts.values()),
+        "nepal_total": nepal_total,
+        "world_unmapped": unmapped_world,
+        "nepal_unmapped": unmapped_nepal,
+    }
+
 
 def graduation_year(batch):
     """Return the B.S. graduation year for an enrollment batch."""

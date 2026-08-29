@@ -1,6 +1,10 @@
 {% extends "base_app.html" %}
-{% load humanize %}
+{% load humanize static %}
 {% block title %}Department Report{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
 
 {% block content %}
 <h1 class="page-title">Department Report</h1>
@@ -64,11 +68,47 @@
     <div class="legend-line"><span><i class="legend-swatch location-nepal"></i>Nepal</span><span><i class="legend-swatch location-abroad"></i>Abroad</span><span><i class="legend-swatch location-unknown"></i>Not recorded</span></div>
 </section>
 
+<div class="map-grid">
+    <section class="panel map-panel">
+        <div class="map-heading">
+            <div>
+                <div class="panel-title">Alumni living around the world</div>
+                <p class="map-subtitle">Current country, shown as one proportional circle per mapped location.</p>
+            </div>
+            <span class="map-total">{{ maps.world_total|intcomma }} mapped</span>
+        </div>
+        <div id="alumni-world-map" class="distribution-map" role="img" aria-label="Interactive world map of alumni current residence"></div>
+        <div class="map-footer">
+            <span><i class="map-key-dot map-key-small"></i>Fewer alumni</span>
+            <span><i class="map-key-dot map-key-large"></i>More alumni</span>
+            {% if maps.world_unmapped %}<span class="map-note">{{ maps.world_unmapped|intcomma }} records have an unmapped country value.</span>{% endif %}
+        </div>
+    </section>
+
+    <section class="panel map-panel">
+        <div class="map-heading">
+            <div>
+                <div class="panel-title">Students living across Nepal</div>
+                <p class="map-subtitle">Current city, with permanent district used when current city is blank.</p>
+            </div>
+            <span class="map-total">{{ maps.nepal_total|intcomma }} in Nepal</span>
+        </div>
+        <div id="nepal-student-map" class="distribution-map" role="img" aria-label="Interactive map of students living in Nepal"></div>
+        <div class="map-footer">
+            <span><i class="map-key-dot map-key-small"></i>Fewer students</span>
+            <span><i class="map-key-dot map-key-large"></i>More students</span>
+            {% if maps.nepal_unmapped %}<span class="map-note">{{ maps.nepal_unmapped|intcomma }} Nepal records have no mapped city or district.</span>{% endif %}
+        </div>
+    </section>
+</div>
+
 <div class="stat-grid">
     <section class="panel stat-panel">
         <div class="panel-title">Top countries abroad <a class="report-csv" href="{% url 'directory:department-report-export' 'country' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">CSV</a></div>
         {% include "directory/_coverage_note.html" with coverage=report.coverage.current_location %}
-        {% include "directory/_stat_bars.html" with rows=report.by_country %}
+        <div class="country-breakdown">
+            {% include "directory/_stat_bars.html" with rows=report.by_country %}
+        </div>
         <div class="chart-scroll" role="img" aria-label="Ranked horizontal bars for top countries abroad">
             <svg class="report-chart country-chart" viewBox="0 0 760 390" role="img" aria-labelledby="country-chart-title">
                 <title id="country-chart-title">Top countries abroad</title>
@@ -151,4 +191,7 @@
         <p class="coverage-note">These gaps identify where officer outreach can improve future reporting.</p>
     </section>
 </div>
+{{ maps|json_script:"department-map-data" }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{% static 'js/department_maps.js' %}"></script>
 {% endblock %}
