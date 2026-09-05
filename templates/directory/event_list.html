@@ -1,0 +1,9 @@
+{% extends "base_app.html" %}
+{% block title %}Events &amp; Reunions{% endblock %}
+{% block content %}
+<h1 class="page-title">Events &amp; Reunions</h1>
+<p class="page-sub">Register for published alumni activities and submit your own event idea.</p>
+<div class="app-actions service-actions"><a class="btn btn-primary" href="{% url 'directory:event-submit' %}">Submit an event</a></div>
+<section class="service-grid">{% for event in events %}<article class="panel service-card"><div class="panel-title">{{ event.title }}</div><p>{{ event.description|truncatechars:240 }}</p><p class="service-meta">{{ event.starts_at|date:"M j, Y · g:i A" }}{% if event.location %} · {{ event.location }}{% endif %}</p>{% if event.virtual_url %}<p><a href="{{ event.virtual_url }}" target="_blank" rel="noopener">Virtual event link</a></p>{% endif %}<form method="post" action="{% url 'directory:event-registration' event.pk %}">{% csrf_token %}{% if event.pk in registered %}<input type="hidden" name="action" value="cancel"><button class="btn btn-light" type="submit">Cancel registration</button>{% else %}<input type="hidden" name="action" value="register"><button class="btn btn-primary" type="submit">Register</button>{% endif %}</form></article>{% empty %}<section class="panel"><p class="bar-empty">No upcoming published events are available.</p></section>{% endfor %}</section>
+<section class="panel"><div class="panel-title">Your submissions</div><ul class="workflow-list">{% for event in mine %}<li><strong>{{ event.title }}</strong><span>{{ event.get_status_display }}{% for reply in event.service_replies %}<br><span class="muted">Reply: {{ reply.message }}</span>{% endfor %}</span></li>{% empty %}<li>You have not submitted an event.</li>{% endfor %}</ul></section>
+{% endblock %}

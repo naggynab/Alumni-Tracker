@@ -28,7 +28,14 @@
                 <a class="nav {% if nav_active == 'home' %}active{% endif %}" href="{% url 'directory:home' %}">Home</a>
                 <a class="nav {% if nav_active == 'yearbook' %}active{% endif %}" href="{% url 'directory:alumni-list' %}">View Yearbook</a>
                 {% if user.is_authenticated %}
+                    {% if is_department_only_staff %}
+                        <a class="nav" href="{% url 'directory:department-report' %}">Department Report</a>
+                    {% else %}
                     <a class="nav" href="{% url 'directory:my-profile' %}">My Profile</a>
+                        {% if is_department_staff %}
+                            <a class="nav" href="{% url 'directory:department-report' %}">Department Report</a>
+                        {% endif %}
+                    {% endif %}
                     <form method="post" action="{% url 'account_logout' %}" style="display:inline;margin:0">{% csrf_token %}
                         <button type="submit" class="btn btn-primary" style="padding:9px 20px">Logout</button>
                     </form>

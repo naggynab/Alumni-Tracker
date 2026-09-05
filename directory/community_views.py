@@ -50,7 +50,7 @@ from .models import (
 )
 from .notifications import notify_user
 from .permissions import department_data_editor_required
-from .student_views import _shell_context, _student_alumnus
+from .student_views import attach_service_replies, _shell_context, _student_alumnus
 
 
 def _student_or_claim(request):
@@ -231,7 +231,7 @@ def stories(request):
     if response:
         return response
     published = AlumniStory.objects.filter(status="published").select_related("author")
-    mine = AlumniStory.objects.filter(author=request.user)
+    mine = attach_service_replies(AlumniStory.objects.filter(author=request.user))
     return render(request, "directory/stories.html", _shell_context(request, alumnus=alumnus, stories=published, mine=mine))
 
 
@@ -328,13 +328,66 @@ def survey_detail(request, survey_id):
     return render(request, "directory/survey_detail.html", _shell_context(request, alumnus=alumnus, survey=survey, form=form))
 
 
+@department_data_editor_required
+def department_feedback(request):
+    """Show student survey feedback to department data editors."""
+    surveys = list(
+        Survey.objects.filter(status__in=("published", "closed"))
+        .annotate(response_count=Count("responses"))
+        .order_by("-created_at")
+    )
+    selected_id = request.GET.get("survey")
+    selected_survey = next(
+        (survey for survey in surveys if str(survey.pk) == selected_id), None
+    )
+    responses = SurveyResponse.objects.filter(
+        survey__status__in=("published", "closed")
+    ).select_related("survey")
+    if selected_survey:
+        responses = responses.filter(survey=selected_survey)
+
+    answer_rows = []
+    for response in responses[:200]:
+        labels = {
+            str(question.get("key")): question.get("label", question.get("key"))
+            for question in (response.survey.questions or [])
+            if question.get("key")
+        }
+        answer_rows.append(
+            {
+                "survey": response.survey,
+                "created_at": response.created_at,
+                "answers": [
+                    {"label": labels.get(str(key), str(key)), "value": value}
+                    for key, value in response.answers.items()
+                ],
+            }
+        )
+    return render(
+        request,
+        "directory/department_feedback.html",
+        {
+            "surveys": surveys,
+            "responses": answer_rows,
+            "selected_survey": selected_survey,
+            "app_alumnus": getattr(request.user, "alumnus_profile", None),
+            "nav_active": "report",
+        },
+    )
+
+
 @login_required
 def resources(request):
     alumnus, response = _student_or_claim(request)
     if response:
         return response
     items = Resource.objects.filter(status="published")
-    return render(request, "directory/resources.html", _shell_context(request, alumnus=alumnus, resources=items))
+    mine = attach_service_replies(Resource.objects.filter(submitted_by=request.user))
+    return render(
+        request,
+        "directory/resources.html",
+        _shell_context(request, alumnus=alumnus, resources=items, mine=mine),
+    )
 
 
 @login_required

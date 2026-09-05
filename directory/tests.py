@@ -1,3 +1,5 @@
+import hashlib
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import AnonymousUser
@@ -7,6 +9,7 @@ from django.urls import reverse
 from .choices import (
     FIELD_COMPUTER,
     FIELD_ELECTRICAL,
+    BATCH_YEAR_CHOICES,
     normalize_employer,
     normalize_field_of_study,
     normalize_gender,
@@ -17,10 +20,24 @@ from .choices import (
 from .filters import AlumnusFilter
 from .models import (
     Alumnus,
+    ApiToken,
     ClaimReview,
     ContactRequest,
+<<<<<<< HEAD
     FollowUp,
     JobPosting,
+=======
+    CorrectionRequest,
+    EventRegistration,
+    FollowUp,
+    JobPosting,
+    MentorshipProfile,
+    MentorshipRequest,
+    Notification,
+    ServiceRequestReply,
+    Survey,
+    SurveyResponse,
+>>>>>>> origin/main
 )
 from .permissions import is_department_data_editor, is_department_staff
 from .profile import profile_completeness
@@ -140,7 +157,7 @@ class FilterTests(TestCase):
         city_field = alumni_filter.form.fields["current_city"]
 
         city_values = [value for value, _label in city_field.choices if value]
-        self.assertEqual(city_values, ["Kathmandu", "Lalitpur"])
+        self.assertEqual(city_values, [])
         self.assertNotIn("disabled", city_field.widget.attrs)
 
     def test_city_choices_are_scoped_by_country(self):
@@ -150,6 +167,119 @@ class FilterTests(TestCase):
 
         self.assertEqual(city_values, ["Kathmandu"])
         self.assertNotIn("disabled", city_field.widget.attrs)
+
+    def test_batch_choices_are_full_years_and_match_legacy_storage(self):
+        alumni_filter = AlumnusFilter({"batch": "2078"}, queryset=Alumnus.objects.all())
+        batch_field = alumni_filter.form.fields["batch"]
+
+        self.assertEqual(
+            [value for value, _label in batch_field.choices if value],
+            [value for value, _label in BATCH_YEAR_CHOICES],
+        )
+        self.assertEqual(alumni_filter.qs.count(), 4)
+
+    def test_batch_and_university_filter_together(self):
+        self.assertEqual(
+            self._count(
+                {
+                    "batch": "2078",
+                    "university": normalize_institution("IOE pulchowk"),
+                }
+            ),
+            2,
+        )
+
+    def test_roll_number_search_uses_the_existing_record(self):
+        Alumnus.objects.filter(first_name="Aashish").update(class_roll_no="080BCT047")
+        self.assertEqual(self._count({"name": "080bct047"}), 1)
+
+    def test_filter_options_endpoint_uses_database_values_and_country_scope(self):
+        response = self.client.get(reverse("directory:alumni-filter-options"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            {item["value"] for item in payload["countries"]}, {"NP", "US"}
+        )
+        self.assertEqual(payload["cities"], [])
+        response = self.client.get(
+            reverse("directory:alumni-filter-options"), {"country": "NP"}
+        )
+        self.assertEqual(
+            [item["value"] for item in response.json()["cities"]],
+            ["Kathmandu"],
+        )
+
+
+class SearchDataReflectionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="api-user", email="api@example.com", password="ValidPass1!"
+        )
+        self.record = Alumnus.objects.create(
+            first_name="Ram",
+            last_name="Sharma",
+            field_of_study="BSc CSIT",
+            department_raw="BSc CSIT",
+            batch="078",
+            further_study_institution="Tribhuvan University",
+            is_public=True,
+        )
+        self.other = Alumnus.objects.create(
+            first_name="Sita",
+            last_name="Gurung",
+            field_of_study="BSc CSIT",
+            department_raw="BSc CSIT",
+            batch="079",
+            further_study_institution="Kathmandu University",
+            is_public=True,
+        )
+
+    def test_result_page_uses_record_names_and_program(self):
+        response = self.client.get(
+            reverse("directory:alumni-list"),
+            {"batch": "2078", "university": normalize_institution("Tribhuvan University")},
+        )
+
+        self.assertContains(response, "Ram Sharma")
+        self.assertContains(response, "BSc CSIT")
+        self.assertNotContains(response, "Sita Gurung")
+
+    def test_api_returns_reflection_fields_and_supports_combined_filters(self):
+        raw_token = "test-token"
+        ApiToken.objects.create(
+            user=self.user,
+            name="test",
+            token_hash=hashlib.sha256(raw_token.encode("utf-8")).hexdigest(),
+        )
+
+        response = self.client.get(
+            reverse("api-alumni"),
+            {
+                "batch": "2078",
+                "university": normalize_institution("Tribhuvan University"),
+            },
+            HTTP_AUTHORIZATION=f"Bearer {raw_token}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["count"], 1)
+        self.assertEqual(
+            payload["results"][0] | {},
+            {
+                "id": self.record.pk,
+                "name": "Ram Sharma",
+                "first_name": "Ram",
+                "last_name": "Sharma",
+                "batch": "078",
+                "program": "BSc CSIT",
+                "program_display": "BSc CSIT",
+                "university": "Tribhuvan University",
+                "city": "",
+                "country": "",
+                "profile_url": self.record.get_absolute_url(),
+            },
+        )
 
 
 class ViewTests(TestCase):
@@ -188,6 +318,48 @@ class DepartmentAccessTests(TestCase):
         group.user_set.add(self.user)
         self.assertTrue(is_department_staff(self.user))
 
+    def test_department_staff_profile_hides_academic_sections(self):
+        group = Group.objects.create(name="Department Staff")
+        group.user_set.add(self.user)
+        Alumnus.objects.create(
+            first_name="Department",
+            last_name="Officer",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            class_roll_no="999BCT001",
+            user_account=self.user,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("directory:my-profile"))
+
+        self.assertContains(response, "Personal Information")
+        self.assertContains(response, "Contact Information")
+        self.assertContains(response, "Professional Information")
+        self.assertNotContains(response, "Academic Information")
+        self.assertNotContains(response, "Graduation Year")
+        self.assertNotContains(response, "Higher Studies Information")
+
+    def test_department_staff_student_services_shows_authority_workspace(self):
+        staff_group = Group.objects.create(name="Department Staff")
+        editor_group = Group.objects.create(name="Alumni Data Editors")
+        staff_group.user_set.add(self.user)
+        editor_group.user_set.add(self.user)
+        Alumnus.objects.create(
+            first_name="Department",
+            last_name="Officer",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            user_account=self.user,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("directory:student-services"))
+
+        self.assertContains(response, "Department authority workspace")
+        self.assertContains(response, "Student request desk")
+        self.assertContains(response, "Student recommendations &amp; feedback")
+
     def test_configured_domain_is_allowed(self):
         with self.settings(DEPARTMENT_EMAIL_DOMAINS=["example.com"]):
             self.assertTrue(is_department_staff(self.user))
@@ -196,6 +368,128 @@ class DepartmentAccessTests(TestCase):
         self.user.email = "officer@ioe.edu.np"
         self.user.save(update_fields=["email"])
         self.assertFalse(is_department_staff(self.user))
+
+
+@override_settings(DEPARTMENT_EMAILS=[], DEPARTMENT_EMAIL_DOMAINS=[])
+class StudentServiceReplyTests(TestCase):
+    def setUp(self):
+        self.student = User.objects.create_user(
+            username="student-requester",
+            email="student@example.com",
+            password="ValidPass1!",
+        )
+        self.alumnus = Alumnus.objects.create(
+            first_name="Student",
+            last_name="Requester",
+            batch="080",
+            field_of_study=FIELD_COMPUTER,
+            current_city="Lalitpur",
+            user_account=self.student,
+        )
+        self.editor = User.objects.create_user(
+            username="department-editor",
+            email="editor@example.com",
+            password="ValidPass1!",
+        )
+        editor_group = Group.objects.create(name="Alumni Data Editors")
+        editor_group.user_set.add(self.editor)
+        self.staff = User.objects.create_user(
+            username="department-reader",
+            email="reader@example.com",
+            password="ValidPass1!",
+        )
+        staff_group = Group.objects.create(name="Department Staff")
+        staff_group.user_set.add(self.staff)
+        self.correction = CorrectionRequest.objects.create(
+            alumnus=self.alumnus,
+            requester=self.student,
+            field_name="current_city",
+            current_value="Lalitpur",
+            proposed_value="Kathmandu",
+            reason="I moved recently.",
+        )
+
+    def test_editor_can_approve_and_reply_to_correction(self):
+        self.client.force_login(self.editor)
+
+        response = self.client.post(
+            reverse("directory:student-requests"),
+            {
+                "kind": "correction",
+                "object_id": self.correction.pk,
+                "status": "approved",
+                "message": "Your city correction was approved.",
+            },
+        )
+
+        self.assertRedirects(response, reverse("directory:student-requests"))
+        self.correction.refresh_from_db()
+        self.alumnus.refresh_from_db()
+        self.assertEqual(self.correction.status, "approved")
+        self.assertEqual(self.alumnus.current_city, "Kathmandu")
+        self.assertEqual(
+            ServiceRequestReply.objects.get(object_id=self.correction.pk).message,
+            "Your city correction was approved.",
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.student,
+                kind="service_request",
+                message="Your city correction was approved.",
+            ).exists()
+        )
+
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("directory:correction-requests"))
+        self.assertContains(response, "Your city correction was approved.")
+
+    def test_department_reader_cannot_reply(self):
+        self.client.force_login(self.staff)
+
+        response = self.client.get(reverse("directory:student-requests"))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(ServiceRequestReply.objects.exists())
+
+    def test_private_peer_requests_are_not_in_department_queue(self):
+        recipient = User.objects.create_user(
+            username="private-recipient",
+            email="recipient@example.com",
+            password="ValidPass1!",
+        )
+        ContactRequest.objects.create(
+            sender=self.student,
+            recipient=recipient,
+            message="PRIVATE_CONTACT_REQUEST_SHOULD_NOT_APPEAR",
+        )
+        self.client.force_login(self.editor)
+
+        response = self.client.get(reverse("directory:student-requests"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "PRIVATE_CONTACT_REQUEST_SHOULD_NOT_APPEAR")
+
+    def test_department_editor_can_review_student_feedback_without_identity(self):
+        survey = Survey.objects.create(
+            title="Student recommendations",
+            description="Tell the department what to improve.",
+            status="published",
+            questions=[{"key": "recommendation", "label": "Recommendation"}],
+            created_by=self.editor,
+        )
+        SurveyResponse.objects.create(
+            survey=survey,
+            respondent=self.student,
+            answers={"recommendation": "Please add more career workshops."},
+        )
+        self.client.force_login(self.editor)
+
+        response = self.client.get(reverse("directory:department-feedback"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Student recommendations")
+        self.assertContains(response, "Please add more career workshops.")
+        self.assertNotContains(response, "student@example.com")
 
 
 class ReportAggregationTests(TestCase):

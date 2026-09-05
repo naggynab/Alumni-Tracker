@@ -25,10 +25,12 @@
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
                 My Profile
             </a>
+            {% if not is_department_only_staff %}
             <a href="{% url 'accounts:edit-profile' %}" class="{% if nav_active == 'edit' %}active{% endif %}">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                 Edit Profile
             </a>
+            {% endif %}
             <a href="{% url 'directory:alumni-list' %}" class="{% if nav_active == 'yearbook' %}active{% endif %}">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5h6a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2Z"/><path d="M22 5h-6a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22Z"/></svg>
                 View Yearbook
@@ -45,10 +47,16 @@
             {% endif %}
         </nav>
         <div class="s-spacer"></div>
-        <div class="s-user">
+        <a class="s-user" href="{% url 'directory:my-profile' %}" aria-label="{% if is_department_only_staff %}Open staff profile{% else %}Open my profile{% endif %}">
             <img src="{% static 'pictures/default_user.png' %}" alt="">
-            <span>{% if app_alumnus %}{{ app_alumnus.full_name }}{% else %}{{ user.email }}{% endif %}</span>
-        </div>
+            {% if app_alumnus %}
+            <span>{{ app_alumnus.full_name }}</span>
+            {% elif is_department_only_staff %}
+            <span>Staff</span>
+            {% else %}
+            <span>{{ user.email }}</span>
+            {% endif %}
+        </a>
         <div class="s-logout">
             <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}
                 <button type="submit">

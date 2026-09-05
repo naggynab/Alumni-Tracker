@@ -18,15 +18,15 @@ authentication story and campus-wide (multi-faculty) search.
 - A recovery email is saved during registration and supports password reset
 - **Google** sign-in (OAuth)
 - Brute-force throttling (5 failed logins / 5 min)
-- Alumni **claim** their pre-loaded record by confirming batch + field + last
-  name + (roll number *or* date of birth) — stricter than the reference app,
-  which authenticated on date of birth alone.
+- Alumni **claim** their pre-loaded record by confirming batch + roll number +
+  date of birth — stricter than the reference app, which authenticated on date
+  of birth alone.
 
-**Six-filter alumni search** (`/alumni/`)
+**Seven-filter alumni search** (`/alumni/`)
 | Filter | Field |
 | --- | --- |
 | Name | first / middle / last (each term matched across all name parts) |
-| Batch | enrollment batch/year (e.g. `078`) |
+| Batch | enrollment batch/year (e.g. `2078`; legacy `078` is also accepted) |
 | Field of study | Computer, Electronics, Electrical, Civil, Mechanical, Architecture, Aerospace, Chemical, Science |
 | Current city | city the alumnus currently lives in |
 | Works at | employer / organization |
@@ -45,7 +45,7 @@ remain handled through the application's private contact workflows.
 alumni_tracker/     Django project settings, root URLs
 directory/          Alumnus model, search filters, directory views
   ├─ choices.py     canonical fields of study + normalisers for messy source data
-  ├─ filters.py     the six-filter FilterSet
+  ├─ filters.py     the seven-filter FilterSet
   └─ management/commands/import_alumni.py
 accounts/           account claim + profile-edit flow (auth via allauth)
 templates/          base layout, directory pages, and custom auth pages
@@ -104,14 +104,31 @@ named group access without the admin site:
 The staff-only operational pages are available at `/reports/department/` and
 the following additive routes: `/reports/department/data-quality/`,
 `/reports/department/compare/`, `/reports/department/follow-ups/`,
-`/reports/department/verification/`, and `/reports/department/roles/`.
+`/reports/department/verification/`, `/reports/department/roles/`,
+`/reports/department/student-requests/`, and `/reports/department/feedback/`.
+Department data editors can review department-owned Student Services
+submissions, update their status, send durable replies, and review anonymized
+student survey recommendations and feedback.
+Department-only staff sign in with their approved email and password at
+`/accounts/department/login/`; alumni sign in with their college roll number at
+`/accounts/login/`. An alumni account that also has department access keeps both
+workspaces, while an unlinked department account cannot open Student Services.
 The signed-in profile checklist is at `/me/completeness/`. These pages reuse
 the app shell and do not modify the existing home page or public UI.
 
 Student Services is available at `/student/`. It includes correction requests,
+<<<<<<< HEAD
 moderated jobs and internships, and private contact requests. Students only see
 published community content; corrections and jobs require staff review before
 publication or data changes.
+=======
+mentorship, moderated jobs and internships, event registration/submissions,
+private contact requests, and request-status/reply history. Students only see
+published community content; corrections, jobs, and events require staff review
+before publication or data changes. Peer-to-peer mentorship and contact requests
+remain private between the participating alumni and are not placed in the
+department queue.
+>>>>>>> origin/main
 
 The Student Services area also includes notifications, saved directory searches,
 private favorites, batch/community groups, moderated alumni stories, skills and
@@ -191,6 +208,10 @@ DEFAULT_FROM_EMAIL=your-sender@example.com
 
 Restart the server after saving the file. If the campus Google Workspace admin
 does not permit App Passwords, request the campus SMTP relay details instead.
+The same provider settings are required in production. If the reset page says it
+could not send the link, check the Coolify email-provider variables, sender
+verification (for Resend), or SMTP credentials and redeploy after correcting
+them; the application shows an error instead of returning a blank server error.
 
 ### Google sign-in
 
@@ -256,5 +277,5 @@ publication; review any future dataset's approval status before importing it.
 python manage.py test
 ```
 
-Covers the source-data normalisers, all six search filters, record visibility,
+Covers the source-data normalisers, all seven search filters, record visibility,
 and the account claim flow (success, wrong details, and missing identity proof).

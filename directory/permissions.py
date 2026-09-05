@@ -19,6 +19,8 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 
+from .models import Alumnus
+
 
 def is_department_staff(user):
     """Return True if `user` may view the department report."""
@@ -47,6 +49,20 @@ def is_department_staff(user):
             return True
 
     return False
+
+
+def is_alumni_account(user):
+    """Return True when the account is linked to an alumni record."""
+    return bool(
+        user
+        and user.is_authenticated
+        and Alumnus.objects.filter(user_account_id=user.pk).exists()
+    )
+
+
+def is_department_only_staff(user):
+    """Return True for staff accounts that are not alumni accounts."""
+    return is_department_staff(user) and not is_alumni_account(user)
 
 
 def _has_group(user, group_name):

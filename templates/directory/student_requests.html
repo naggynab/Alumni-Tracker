@@ -1,0 +1,38 @@
+{% extends "base_app.html" %}
+{% block title %}Student Requests &amp; Replies{% endblock %}
+{% block content %}
+<h1 class="page-title">Student Requests &amp; Replies</h1>
+<p class="page-sub">Review department-owned submissions from Student Services and send a durable reply to the alumnus.</p>
+
+<div class="queue-tabs">
+    {% for value, label in status_filters %}
+        <a class="btn {% if status_filter == value %}btn-primary{% else %}btn-light{% endif %}" href="?status={{ value }}">{{ label }}</a>
+    {% endfor %}
+</div>
+
+{% for entry in entries %}
+<section class="panel stat-panel request-card">
+    <div class="panel-title">{{ entry.label }} - {{ entry.title }}</div>
+    <p class="muted">From: {{ entry.requester.email|default:"Account unavailable" }} | Status: {{ entry.item.get_status_display }} | {{ entry.item.created_at|date:"Y-m-d H:i" }}</p>
+    <p>{{ entry.summary|linebreaksbr }}</p>
+    {% if entry.item.service_replies %}
+        <div class="panel report-note">
+            <strong>Previous replies</strong>
+            {% for reply in entry.item.service_replies %}<p><span class="muted">{{ reply.author.email|default:"Department" }} | {{ reply.created_at|date:"Y-m-d H:i" }}</span><br>{{ reply.message|linebreaksbr }}</p>{% endfor %}
+        </div>
+    {% endif %}
+    <form class="workflow-form" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="kind" value="{{ entry.kind }}">
+        <input type="hidden" name="object_id" value="{{ entry.item.pk }}">
+        <div class="rf-fields">
+            <div class="rf-field"><label for="status-{{ entry.kind }}-{{ entry.item.pk }}">Decision</label><select id="status-{{ entry.kind }}-{{ entry.item.pk }}" name="status">{% for value, label in entry.status_choices %}<option value="{{ value }}"{% if value == entry.item.status %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="rf-field"><label for="message-{{ entry.kind }}-{{ entry.item.pk }}">Reply to the student</label><textarea id="message-{{ entry.kind }}-{{ entry.item.pk }}" name="message" rows="3" required placeholder="Explain the decision or next step."></textarea></div>
+        </div>
+        <div class="app-actions"><button class="btn btn-primary" type="submit">Save and send reply</button></div>
+    </form>
+</section>
+{% empty %}
+<section class="panel"><p class="bar-empty">No requests match this view.</p></section>
+{% endfor %}
+{% endblock %}

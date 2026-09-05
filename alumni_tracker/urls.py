@@ -4,6 +4,8 @@ from django.contrib import admin
 from django.urls import include, path
 
 from accounts.views import (
+    DepartmentEmailLoginView,
+    DepartmentPasswordResetView,
     RollNumberPasswordResetView,
     SecureLoginView,
     google_login,
@@ -20,6 +22,16 @@ urlpatterns = [
         name="account_reset_password",
     ),
     path("accounts/login/", SecureLoginView.as_view(), name="account_login"),
+    path(
+        "accounts/department/login/",
+        DepartmentEmailLoginView.as_view(),
+        name="department_login",
+    ),
+    path(
+        "accounts/department/password/reset/",
+        DepartmentPasswordResetView.as_view(),
+        name="department_reset_password",
+    ),
     path("accounts/login/2fa/", login_2fa, name="account_login_2fa"),
     path("accounts/google/login/", google_login, name="google_login"),
     path("accounts/", include("allauth.urls")),

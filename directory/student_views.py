@@ -2,8 +2,15 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+<<<<<<< HEAD
 from django.db.models import Q
+=======
+from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
+from django.db.models import Count, Q
+>>>>>>> origin/main
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from accounts.authentication import normalize_roll_number
@@ -11,19 +18,81 @@ from accounts.authentication import normalize_roll_number
 from .audit import log_department_action
 from .notifications import notify_user
 from .models import (
+<<<<<<< HEAD
+=======
+    AlumniEvent,
+    AlumniStory,
+>>>>>>> origin/main
     Alumnus,
     ContactRequest,
     CorrectionRequest,
     JobPosting,
+<<<<<<< HEAD
+=======
+    MentorshipProfile,
+    MentorshipRequest,
+    Resource,
+    ServiceRequestReply,
+>>>>>>> origin/main
 )
-from .permissions import department_data_editor_required
+from .permissions import department_data_editor_required, is_department_only_staff
 from .student_forms import (
     ContactRequestForm,
     CorrectionRequestForm,
     CorrectionReviewForm,
     DecisionForm,
     JobPostingForm,
+<<<<<<< HEAD
+=======
+    MentorshipProfileForm,
+    MentorshipRequestForm,
+    ServiceRequestReplyForm,
+>>>>>>> origin/main
 )
+
+
+SERVICE_REQUEST_DEFINITIONS = {
+    "correction": {
+        "label": "Correction request",
+        "model": CorrectionRequest,
+        "requester_field": "requester",
+        "select_related": ("alumnus", "requester", "reviewer"),
+        "url": "directory:correction-requests",
+        "status_choices": CorrectionRequest.STATUS_CHOICES,
+    },
+    "job": {
+        "label": "Job or internship submission",
+        "model": JobPosting,
+        "requester_field": "posted_by",
+        "select_related": ("posted_by", "reviewed_by"),
+        "url": "directory:job-board",
+        "status_choices": JobPosting.STATUS_CHOICES,
+    },
+    "event": {
+        "label": "Event submission",
+        "model": AlumniEvent,
+        "requester_field": "organizer",
+        "select_related": ("organizer", "reviewed_by"),
+        "url": "directory:event-list",
+        "status_choices": AlumniEvent.STATUS_CHOICES,
+    },
+    "story": {
+        "label": "Story submission",
+        "model": AlumniStory,
+        "requester_field": "author",
+        "select_related": ("author", "reviewed_by"),
+        "url": "directory:stories",
+        "status_choices": AlumniStory.STATUS_CHOICES,
+    },
+    "resource": {
+        "label": "Resource submission",
+        "model": Resource,
+        "requester_field": "submitted_by",
+        "select_related": ("submitted_by", "reviewed_by"),
+        "url": "directory:resources",
+        "status_choices": Resource.STATUS_CHOICES,
+    },
+}
 
 
 def _student_alumnus(request):
@@ -42,8 +111,98 @@ def _shell_context(request, **extra):
     return context
 
 
+def attach_service_replies(items):
+    """Attach durable department replies to a list of one model type."""
+    items = list(items)
+    if not items:
+        return items
+    content_type = ContentType.objects.get_for_model(items[0])
+    replies = ServiceRequestReply.objects.filter(
+        content_type=content_type,
+        object_id__in=[item.pk for item in items],
+    ).select_related("author")
+    by_object = {}
+    for reply in replies:
+        by_object.setdefault(reply.object_id, []).append(reply)
+    for item in items:
+        item.service_replies = by_object.get(item.pk, [])
+    return items
+
+
+def _request_title(kind, item):
+    if kind == "correction":
+        return f"{item.alumnus.full_name} - {item.field_name.replace('_', ' ').title()}"
+    if kind == "job":
+        return f"{item.title} - {item.organization}"
+    if kind == "event":
+        return item.title
+    return item.title
+
+
+def _request_summary(kind, item):
+    if kind == "correction":
+        return (
+            f"Current: {item.current_value or '-'} | "
+            f"Proposed: {item.proposed_value}"
+            + (f" | Reason: {item.reason}" if item.reason else "")
+        )
+    if kind == "job":
+        return item.description
+    if kind == "event":
+        return item.description
+    if kind == "story":
+        return item.body
+    return item.description
+
+
+def _request_status_choices(kind, item):
+    choices = list(SERVICE_REQUEST_DEFINITIONS[kind]["status_choices"])
+    if item.status not in dict(choices):
+        choices.insert(0, (item.status, item.get_status_display()))
+    return choices
+
+
+def _request_entries(status_filter="pending"):
+    entries = []
+    for kind, definition in SERVICE_REQUEST_DEFINITIONS.items():
+        queryset = definition["model"].objects.select_related(
+            *definition["select_related"]
+        )
+        if status_filter == "pending":
+            queryset = queryset.filter(status="pending")
+        elif status_filter == "active":
+            queryset = queryset.filter(status__in=("pending", "in_review"))
+        items = attach_service_replies(queryset[:100])
+        for item in items:
+            if status_filter == "replied" and not item.service_replies:
+                continue
+            requester = getattr(item, definition["requester_field"], None)
+            entries.append(
+                {
+                    "kind": kind,
+                    "label": definition["label"],
+                    "item": item,
+                    "title": _request_title(kind, item),
+                    "summary": _request_summary(kind, item),
+                    "requester": requester,
+                    "status_choices": _request_status_choices(kind, item),
+                    "url": definition["url"],
+                }
+            )
+    return sorted(entries, key=lambda entry: entry["item"].created_at, reverse=True)
+
+
 @login_required
 def student_services(request):
+    if is_department_only_staff(request.user):
+        return render(
+            request,
+            "directory/department_student_services.html",
+            {
+                "app_alumnus": None,
+                "nav_active": "student",
+            },
+        )
     alumnus = _student_alumnus(request)
     if alumnus is None:
         return redirect("accounts:claim-record")
@@ -110,7 +269,9 @@ def correction_requests(request):
             request,
             alumnus=alumnus,
             form=form,
-            corrections=CorrectionRequest.objects.filter(alumnus=alumnus),
+            corrections=attach_service_replies(
+                CorrectionRequest.objects.filter(alumnus=alumnus)
+            ),
         ),
     )
 
@@ -124,7 +285,7 @@ def job_board(request):
     jobs = JobPosting.objects.filter(status="published").filter(
         Q(deadline__isnull=True) | Q(deadline__gte=today)
     )
-    mine = JobPosting.objects.filter(posted_by=request.user)
+    mine = attach_service_replies(JobPosting.objects.filter(posted_by=request.user))
     return render(
         request,
         "directory/job_board.html",
@@ -156,6 +317,84 @@ def job_submit(request):
 
 
 @login_required
+<<<<<<< HEAD
+=======
+def event_list(request):
+    alumnus = _student_alumnus(request)
+    if alumnus is None:
+        return redirect("accounts:claim-record")
+    now = timezone.now()
+    events = AlumniEvent.objects.filter(status="published", starts_at__gte=now)
+    registered = set(
+        EventRegistration.objects.filter(
+            attendee=request.user, status="registered"
+        ).values_list("event_id", flat=True)
+    )
+    return render(
+        request,
+        "directory/event_list.html",
+        _shell_context(
+            request,
+            events=events,
+            registered=registered,
+            mine=attach_service_replies(
+                AlumniEvent.objects.filter(organizer=request.user)
+            ),
+            alumnus=alumnus,
+        ),
+    )
+
+
+@login_required
+def event_submit(request):
+    alumnus = _student_alumnus(request)
+    if alumnus is None:
+        return redirect("accounts:claim-record")
+    if request.method == "POST":
+        form = AlumniEventForm(request.POST)
+        if form.is_valid():
+            event = form.save(commit=False)
+            event.organizer = request.user
+            event.status = "pending"
+            event.save()
+            messages.success(request, "Event submitted for review.")
+            return redirect("directory:event-list")
+    else:
+        form = AlumniEventForm()
+    return render(
+        request,
+        "directory/event_submit.html",
+        _shell_context(request, form=form, alumnus=alumnus),
+    )
+
+
+@login_required
+def event_registration(request, event_id):
+    if request.method != "POST":
+        return redirect("directory:event-list")
+    event = get_object_or_404(AlumniEvent, pk=event_id, status="published")
+    action = request.POST.get("action", "register")
+    registration, _created = EventRegistration.objects.get_or_create(
+        event=event, attendee=request.user
+    )
+    if action == "cancel":
+        registration.status = "cancelled"
+        registration.save(update_fields=["status", "updated_at"])
+        messages.info(request, "Event registration cancelled.")
+    else:
+        if event.max_attendees and EventRegistration.objects.filter(
+            event=event, status="registered"
+        ).exclude(attendee=request.user).count() >= event.max_attendees:
+            messages.error(request, "This event is currently full.")
+        else:
+            registration.status = "registered"
+            registration.save(update_fields=["status", "updated_at"])
+            messages.success(request, "You are registered for the event.")
+    return redirect("directory:event-list")
+
+
+@login_required
+>>>>>>> origin/main
 def contact_requests(request):
     alumnus = _student_alumnus(request)
     if alumnus is None:
@@ -328,6 +567,100 @@ def CorrectionRequestFieldChoices():
     from .student_forms import CORRECTABLE_FIELDS
 
     return CORRECTABLE_FIELDS
+
+
+@department_data_editor_required
+def student_request_replies(request):
+    """Review department-owned student-service submissions and reply."""
+    if request.method == "POST":
+        kind = request.POST.get("kind")
+        definition = SERVICE_REQUEST_DEFINITIONS.get(kind)
+        if definition is None:
+            messages.error(request, "That student request is not available.")
+            return redirect("directory:student-requests")
+
+        item = get_object_or_404(definition["model"], pk=request.POST.get("object_id"))
+        form = ServiceRequestReplyForm(
+            _request_status_choices(kind, item), request.POST
+        )
+        if form.is_valid():
+            message = form.cleaned_data["message"].strip()
+            if not message:
+                form.add_error("message", "Write a reply before saving.")
+            else:
+                status = form.cleaned_data["status"]
+                with transaction.atomic():
+                    if kind == "correction":
+                        if status == "approved":
+                            allowed = dict(CorrectionRequestFieldChoices())
+                            if item.field_name not in allowed:
+                                messages.error(
+                                    request,
+                                    "That field is not allowed for self-service correction.",
+                                )
+                                return redirect("directory:student-requests")
+                            setattr(item.alumnus, item.field_name, item.proposed_value)
+                            item.alumnus.save(
+                                update_fields=[item.field_name, "date_modified"]
+                            )
+                        item.reviewer = request.user
+                        item.reviewed_at = (
+                            timezone.now()
+                            if status in ("approved", "rejected")
+                            else None
+                        )
+                        item.reviewer_note = message
+                        item.status = status
+                        item.save()
+                    else:
+                        item.status = status
+                        item.reviewed_by = request.user
+                        item.reviewed_at = timezone.now()
+                        item.save(update_fields=["status", "reviewed_by", "reviewed_at"])
+
+                    ServiceRequestReply.objects.create(
+                        content_type=ContentType.objects.get_for_model(item),
+                        object_id=item.pk,
+                        author=request.user,
+                        message=message,
+                    )
+                    requester = getattr(item, definition["requester_field"], None)
+                    notify_user(
+                        requester,
+                        "service_request",
+                        f"{definition['label']} updated",
+                        message,
+                        reverse(definition["url"]),
+                    )
+                    log_department_action(
+                        request,
+                        "student_service_reply",
+                        {"kind": kind, "request_id": item.pk, "status": status},
+                    )
+                messages.success(request, "The student request was updated and replied to.")
+                return redirect("directory:student-requests")
+
+        messages.error(request, "Please choose a decision and write a reply.")
+
+    status_filter = request.GET.get("status", "pending")
+    if status_filter not in {"pending", "active", "replied", "all"}:
+        status_filter = "pending"
+    return render(
+        request,
+        "directory/student_requests.html",
+        {
+            "entries": _request_entries(status_filter),
+            "status_filter": status_filter,
+            "status_filters": (
+                ("pending", "Pending"),
+                ("active", "Active"),
+                ("replied", "Replied"),
+                ("all", "All requests"),
+            ),
+            "app_alumnus": getattr(request.user, "alumnus_profile", None),
+            "nav_active": "report",
+        },
+    )
 
 
 @department_data_editor_required

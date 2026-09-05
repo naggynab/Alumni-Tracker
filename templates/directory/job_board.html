@@ -1,10 +1,10 @@
 {% extends "base_app.html" %}
 {% load humanize %}
-{% block title %}Jobs & Internships{% endblock %}
+{% block title %}Jobs &amp; Internships{% endblock %}
 {% block content %}
 <h1 class="page-title">Jobs &amp; Internships</h1>
 <p class="page-sub">Community opportunities are reviewed before they appear here.</p>
 <div class="app-actions service-actions"><a class="btn btn-primary" href="{% url 'directory:job-submit' %}">Submit an opportunity</a></div>
 <section class="service-grid">{% for job in jobs %}<article class="panel service-card"><div class="panel-title">{{ job.title }}</div><p><strong>{{ job.organization }}</strong>{% if job.location %} · {{ job.location }}{% endif %}</p><p class="service-meta">{{ job.get_employment_type_display }}{% if job.deadline %} · Apply by {{ job.deadline }}{% endif %}</p><p>{{ job.description|truncatechars:240 }}</p><div class="service-actions">{% if job.application_url %}<a class="btn btn-light" href="{{ job.application_url }}" target="_blank" rel="noopener">Apply online</a>{% endif %}{% if job.application_email %}<a class="btn btn-light" href="mailto:{{ job.application_email }}">Email to apply</a>{% endif %}</div></article>{% empty %}<section class="panel"><p class="bar-empty">No published opportunities are available.</p></section>{% endfor %}</section>
-<section class="panel stat-panel"><div class="panel-title">My submissions</div>{% if mine %}<table class="report-table"><thead><tr><th>Opportunity</th><th>Status</th><th>Submitted</th></tr></thead><tbody>{% for job in mine %}<tr><td>{{ job.title }} · {{ job.organization }}</td><td>{{ job.get_status_display }}</td><td>{{ job.created_at|date:"Y-m-d" }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="bar-empty">You have not submitted an opportunity.</p>{% endif %}</section>
+<section class="panel stat-panel"><div class="panel-title">My submissions</div>{% if mine %}<table class="report-table"><thead><tr><th>Opportunity</th><th>Status and replies</th><th>Submitted</th></tr></thead><tbody>{% for job in mine %}<tr><td>{{ job.title }} · {{ job.organization }}</td><td>{{ job.get_status_display }}{% for reply in job.service_replies %}<br><span class="muted">Reply: {{ reply.message }}</span>{% endfor %}</td><td>{{ job.created_at|date:"Y-m-d" }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="bar-empty">You have not submitted an opportunity.</p>{% endif %}</section>
 {% endblock %}

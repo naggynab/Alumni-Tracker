@@ -4,5 +4,5 @@
 <h1 class="page-title">Alumni success stories</h1><p class="page-sub">Learn from the community and share an achievement or career journey.</p>
 <p><a class="btn btn-primary" href="{% url 'directory:story-submit' %}">Share your story</a></p>
 <div class="service-grid">{% for story in stories %}<article class="panel service-card"><div class="panel-title">{{ story.title }}</div><p class="muted">{{ story.body|linebreaksbr }}</p><p class="service-meta">{{ story.author.alumnus_profile.full_name|default:"Alumni contributor" }} · {{ story.created_at|date:"M j, Y" }}</p></article>{% empty %}<section class="panel"><p>No published stories yet.</p></section>{% endfor %}</div>
-<section class="panel"><div class="panel-title">Your submissions</div><ul class="workflow-list">{% for story in mine %}<li><strong>{{ story.title }}</strong><span>{{ story.get_status_display }}</span></li>{% empty %}<li>You have not submitted a story.</li>{% endfor %}</ul></section>
+<section class="panel"><div class="panel-title">Your submissions</div><ul class="workflow-list">{% for story in mine %}<li><strong>{{ story.title }}</strong><span>{{ story.get_status_display }}{% for reply in story.service_replies %}<br><span class="muted">Reply: {{ reply.message }}</span>{% endfor %}</span></li>{% empty %}<li>You have not submitted a story.</li>{% endfor %}</ul></section>
 {% endblock %}

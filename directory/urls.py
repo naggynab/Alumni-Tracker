@@ -9,6 +9,11 @@ app_name = "directory"
 urlpatterns = [
     path("", views.home, name="home"),
     path("alumni/", views.alumni_list, name="alumni-list"),
+    path(
+        "alumni/filter-options/",
+        views.alumni_filter_options,
+        name="alumni-filter-options",
+    ),
     path("alumni/<int:pk>/", views.alumnus_detail, name="alumnus-detail"),
     path("me/", views.my_profile, name="my-profile"),
     path("me/completeness/", views.profile_completeness_page, name="profile-completeness"),
@@ -111,11 +116,17 @@ urlpatterns = [
         name="correction-review",
     ),
     path(
+        "reports/department/student-requests/",
+        student_views.student_request_replies,
+        name="student-requests",
+    ),
+    path(
         "reports/department/community-moderation/",
         student_views.community_moderation,
         name="community-moderation",
     ),
     path("reports/department/content-moderation/", community_views.community_content_moderation, name="content-moderation"),
+    path("reports/department/feedback/", community_views.department_feedback, name="department-feedback"),
     path("reports/department/conflicts/", community_views.data_conflicts, name="data-conflicts"),
     path(
         "reports/department/export/<str:breakdown>/",
