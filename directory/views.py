@@ -1,5 +1,9 @@
 import csv
+<<<<<<< HEAD
 from datetime import timedelta
+=======
+import logging
+>>>>>>> origin/main
 
 from django.conf import settings
 from django.contrib import messages
@@ -7,11 +11,12 @@ from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
-from django.http import Http404, StreamingHttpResponse
+from django.http import Http404, JsonResponse, StreamingHttpResponse
+from django.views.decorators.http import require_GET
 from django.utils import timezone
 from django.shortcuts import get_object_or_404, render
 
-from .filters import AlumnusFilter
+from .filters import AlumnusFilter, get_filter_option_data
 from .forms import ReportFilterForm
 from .audit import log_department_action
 from .models import AlumniFavorite, Alumnus, ClaimReview, FollowUp, FurtherStudy
@@ -30,12 +35,16 @@ from .workflow_forms import (
 )
 
 User = get_user_model()
+<<<<<<< HEAD
 UPDATED_PROFILE_WINDOW_DAYS = 30
 FURTHER_STUDY_LEVELS = (
     ("bachelor", "Bachelor"),
     ("master", "Master"),
     ("phd", "PhD"),
 )
+=======
+logger = logging.getLogger(__name__)
+>>>>>>> origin/main
 
 
 def home(request):
@@ -45,6 +54,34 @@ def home(request):
         "nav_active": "home",
     }
     return render(request, "directory/home.html", context)
+
+
+@require_GET
+def alumni_filter_options(request):
+    """Return public, database-backed options for the Find Alumni filters."""
+    try:
+        data = get_filter_option_data(Alumnus.objects.filter(is_public=True))
+        country = (request.GET.get("country", "") or "").strip()
+        payload = {
+            "countries": [
+                {"value": value, "label": label}
+                for value, label in data["countries"]
+            ],
+            "cities": [
+                {"value": value, "label": label}
+                for value, label in data["cities_by_country"].get(country, [])
+            ],
+            "universities": [
+                {"value": value, "label": label}
+                for value, label in data["universities"]
+            ],
+        }
+        return JsonResponse(payload)
+    except Exception:
+        logger.exception("Unable to load alumni filter options")
+        return JsonResponse(
+            {"detail": "Unable to load alumni filter options."}, status=500
+        )
 
 
 def alumni_list(request):

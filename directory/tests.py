@@ -1,3 +1,5 @@
+import hashlib
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import AnonymousUser
@@ -8,6 +10,7 @@ from django.utils import timezone
 from .choices import (
     FIELD_COMPUTER,
     FIELD_ELECTRICAL,
+    BATCH_YEAR_CHOICES,
     normalize_employer,
     normalize_field_of_study,
     normalize_gender,
@@ -19,6 +22,7 @@ from .filters import AlumnusFilter
 from .models import (
     AlumniEvent,
     Alumnus,
+    ApiToken,
     ClaimReview,
     ContactRequest,
     CorrectionRequest,
@@ -150,7 +154,7 @@ class FilterTests(TestCase):
         city_field = alumni_filter.form.fields["current_city"]
 
         city_values = [value for value, _label in city_field.choices if value]
-        self.assertEqual(city_values, ["Kathmandu", "Lalitpur"])
+        self.assertEqual(city_values, [])
         self.assertNotIn("disabled", city_field.widget.attrs)
 
     def test_city_choices_are_scoped_by_country(self):
@@ -160,6 +164,119 @@ class FilterTests(TestCase):
 
         self.assertEqual(city_values, ["Kathmandu"])
         self.assertNotIn("disabled", city_field.widget.attrs)
+
+    def test_batch_choices_are_full_years_and_match_legacy_storage(self):
+        alumni_filter = AlumnusFilter({"batch": "2078"}, queryset=Alumnus.objects.all())
+        batch_field = alumni_filter.form.fields["batch"]
+
+        self.assertEqual(
+            [value for value, _label in batch_field.choices if value],
+            [value for value, _label in BATCH_YEAR_CHOICES],
+        )
+        self.assertEqual(alumni_filter.qs.count(), 4)
+
+    def test_batch_and_university_filter_together(self):
+        self.assertEqual(
+            self._count(
+                {
+                    "batch": "2078",
+                    "university": normalize_institution("IOE pulchowk"),
+                }
+            ),
+            2,
+        )
+
+    def test_roll_number_search_uses_the_existing_record(self):
+        Alumnus.objects.filter(first_name="Aashish").update(class_roll_no="080BCT047")
+        self.assertEqual(self._count({"name": "080bct047"}), 1)
+
+    def test_filter_options_endpoint_uses_database_values_and_country_scope(self):
+        response = self.client.get(reverse("directory:alumni-filter-options"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(
+            {item["value"] for item in payload["countries"]}, {"NP", "US"}
+        )
+        self.assertEqual(payload["cities"], [])
+        response = self.client.get(
+            reverse("directory:alumni-filter-options"), {"country": "NP"}
+        )
+        self.assertEqual(
+            [item["value"] for item in response.json()["cities"]],
+            ["Kathmandu"],
+        )
+
+
+class SearchDataReflectionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="api-user", email="api@example.com", password="ValidPass1!"
+        )
+        self.record = Alumnus.objects.create(
+            first_name="Ram",
+            last_name="Sharma",
+            field_of_study="BSc CSIT",
+            department_raw="BSc CSIT",
+            batch="078",
+            further_study_institution="Tribhuvan University",
+            is_public=True,
+        )
+        self.other = Alumnus.objects.create(
+            first_name="Sita",
+            last_name="Gurung",
+            field_of_study="BSc CSIT",
+            department_raw="BSc CSIT",
+            batch="079",
+            further_study_institution="Kathmandu University",
+            is_public=True,
+        )
+
+    def test_result_page_uses_record_names_and_program(self):
+        response = self.client.get(
+            reverse("directory:alumni-list"),
+            {"batch": "2078", "university": normalize_institution("Tribhuvan University")},
+        )
+
+        self.assertContains(response, "Ram Sharma")
+        self.assertContains(response, "BSc CSIT")
+        self.assertNotContains(response, "Sita Gurung")
+
+    def test_api_returns_reflection_fields_and_supports_combined_filters(self):
+        raw_token = "test-token"
+        ApiToken.objects.create(
+            user=self.user,
+            name="test",
+            token_hash=hashlib.sha256(raw_token.encode("utf-8")).hexdigest(),
+        )
+
+        response = self.client.get(
+            reverse("api-alumni"),
+            {
+                "batch": "2078",
+                "university": normalize_institution("Tribhuvan University"),
+            },
+            HTTP_AUTHORIZATION=f"Bearer {raw_token}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["count"], 1)
+        self.assertEqual(
+            payload["results"][0] | {},
+            {
+                "id": self.record.pk,
+                "name": "Ram Sharma",
+                "first_name": "Ram",
+                "last_name": "Sharma",
+                "batch": "078",
+                "program": "BSc CSIT",
+                "program_display": "BSc CSIT",
+                "university": "Tribhuvan University",
+                "city": "",
+                "country": "",
+                "profile_url": self.record.get_absolute_url(),
+            },
+        )
 
 
 class ViewTests(TestCase):

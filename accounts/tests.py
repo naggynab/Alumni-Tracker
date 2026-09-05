@@ -454,6 +454,25 @@ class RegistrationSecurityTests(TestCase):
             ).exists()
         )
 
+    def test_registration_does_not_require_removed_profile_fields(self):
+        data = self.registration_data("ValidPass1!")
+        for field in ("first_name", "last_name", "program"):
+            data.pop(field)
+
+        form = RegistrationForm(data=data)
+
+        self.assertTrue(form.is_valid(), form.errors)
+        user = form.save()
+        record = Alumnus.objects.get(user_account=user)
+        self.assertEqual(record.first_name, "")
+        self.assertEqual(record.last_name, "")
+        self.assertEqual(record.field_of_study, "")
+
+    def test_registration_batch_choices_cover_2051_to_2080(self):
+        values = [value for value, _label in RegistrationForm.base_fields["batch"].choices if value]
+
+        self.assertEqual(values, [str(year) for year in range(2051, 2081)])
+
     def test_preloaded_registration_requires_matching_date_of_birth(self):
         Alumnus.objects.create(
             first_name="Nabina",

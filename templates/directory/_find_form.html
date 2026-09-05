@@ -2,7 +2,7 @@
 (AlumnusFilter).{% endcomment %}
 <form method="get" action="{% url 'directory:alumni-list' %}">
   <div class="field-mb">
-    <label for="{{ filter.form.name.id_for_label }}">Search Alumni Name</label>
+    <label for="{{ filter.form.name.id_for_label }}">Roll Number / Alumni Search</label>
     <div class="input-icon">
       <svg
         class="icon"
@@ -57,87 +57,135 @@
 
   <div class="find-actions">
     <button class="btn btn-primary" type="submit">Search</button>
+    <a class="btn btn-light" href="{% url 'directory:alumni-list' %}">Reset</a>
   </div>
 </form>
 
-{{ filter.city_choices_by_country|json_script:"country-city-map" }}
 <script>
   (function () {
+    const optionsUrl = "{% url 'directory:alumni-filter-options' %}";
     const countrySelect = document.getElementById(
       "{{ filter.form.country.id_for_label }}",
     );
     const citySelect = document.getElementById(
       "{{ filter.form.current_city.id_for_label }}",
     );
-    const mapElement = document.getElementById("country-city-map");
+    const universitySelect = document.getElementById(
+      "{{ filter.form.university.id_for_label }}",
+    );
 
-    if (!countrySelect || !citySelect || !mapElement) {
+    if (!countrySelect || !citySelect || !universitySelect) {
       return;
     }
 
-    let cityMap = {};
-    try {
-      cityMap = JSON.parse(mapElement.textContent) || {};
-    } catch (error) {
-      cityMap = {};
-    }
-
-    const selectedFromServer =
-      citySelect.dataset.selectedCity || citySelect.value || "";
-
-    function cityEntries(countryCode) {
-      if (countryCode) {
-        return cityMap[countryCode] || [];
-      }
-
-      const all = {};
-      Object.keys(cityMap).forEach(function (code) {
-        (cityMap[code] || []).forEach(function (entry) {
-          const value = Array.isArray(entry) ? entry[0] : entry;
-          const label = Array.isArray(entry) ? entry[1] : entry;
-          all[value] = label;
-        });
-      });
-      return Object.keys(all).sort().map(function (value) {
-        return [value, all[value]];
-      });
-    }
-
-    function rebuildCityOptions(countryCode, preferredCity) {
-      const cities = cityEntries(countryCode);
-      const placeholder = "Select City";
-
-      citySelect.innerHTML = "";
+    function setOptions(select, options, placeholder, emptyMessage, preferredValue) {
+      const selected = preferredValue === undefined ? select.value : preferredValue;
+      select.innerHTML = "";
 
       const emptyOption = document.createElement("option");
       emptyOption.value = "";
       emptyOption.textContent = placeholder;
-      citySelect.appendChild(emptyOption);
+      select.appendChild(emptyOption);
 
-      cities.forEach(function (entry) {
-        const city = Array.isArray(entry) ? entry[0] : entry;
-        const label = Array.isArray(entry) ? entry[1] : entry;
+      options.forEach(function (optionData) {
         const option = document.createElement("option");
-        option.value = city;
-        option.textContent = label;
-        citySelect.appendChild(option);
+        option.value = optionData.value;
+        option.textContent = optionData.label;
+        select.appendChild(option);
       });
 
-      if (preferredCity && cities.some(function (entry) {
-        return (Array.isArray(entry) ? entry[0] : entry) === preferredCity;
+      if (options.some(function (optionData) {
+        return optionData.value === selected;
       })) {
-        citySelect.value = preferredCity;
+        select.value = selected;
       } else {
-        citySelect.value = "";
+        select.value = "";
       }
 
-      citySelect.disabled = false;
+      if (!options.length && emptyMessage) {
+        const messageOption = document.createElement("option");
+        messageOption.disabled = true;
+        messageOption.textContent = emptyMessage;
+        select.appendChild(messageOption);
+      }
     }
 
-    rebuildCityOptions(countrySelect.value, selectedFromServer);
+    function setLoading(select, placeholder, message) {
+      select.innerHTML = "";
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = message || placeholder;
+      select.appendChild(option);
+      select.disabled = true;
+      select.setAttribute("aria-busy", "true");
+    }
+
+    function setReady(select) {
+      select.disabled = false;
+      select.removeAttribute("aria-busy");
+    }
+
+    function setError(select, placeholder, message) {
+      select.innerHTML = "";
+      const placeholderOption = document.createElement("option");
+      placeholderOption.value = "";
+      placeholderOption.textContent = placeholder;
+      select.appendChild(placeholderOption);
+      const errorOption = document.createElement("option");
+      errorOption.disabled = true;
+      errorOption.textContent = message;
+      select.appendChild(errorOption);
+      select.value = "";
+      setReady(select);
+    }
+
+    async function loadOptions(countryCode, updateAll) {
+      const selectedCountry = countrySelect.value;
+      const selectedCity = citySelect.value;
+      const selectedUniversity = universitySelect.value;
+      const url = new URL(optionsUrl, window.location.origin);
+      if (countryCode) {
+        url.searchParams.set("country", countryCode);
+      }
+
+      if (updateAll) {
+        setLoading(countrySelect, "Select Country", "Loading countries...");
+        setLoading(universitySelect, "Select University", "Loading universities...");
+      }
+      setLoading(citySelect, "Select City", countryCode ? "Loading cities..." : "Select City");
+
+      try {
+        const response = await fetch(url.toString(), {
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
+        if (!response.ok) {
+          throw new Error("filter options request failed");
+        }
+        const data = await response.json();
+
+        if (updateAll) {
+          setOptions(countrySelect, data.countries || [], "Select Country", "No countries available", selectedCountry);
+          setOptions(universitySelect, data.universities || [], "Select University", "No universities available", selectedUniversity);
+          setReady(countrySelect);
+          setReady(universitySelect);
+        }
+        setOptions(citySelect, data.cities || [], "Select City", countryCode ? "No cities available" : "", countryCode ? selectedCity : "");
+        setReady(citySelect);
+      } catch (error) {
+        if (updateAll) {
+          setError(countrySelect, "Select Country", "Unable to load countries. Please try again.");
+          setError(universitySelect, "Select University", "Unable to load universities. Please try again.");
+        }
+        setError(citySelect, "Select City", "Unable to load cities. Please try again.");
+      }
+    }
+
     countrySelect.addEventListener("change", function () {
-      rebuildCityOptions(countrySelect.value, "");
+      citySelect.value = "";
+      loadOptions(countrySelect.value, false);
     });
+
+    loadOptions(countrySelect.value, true);
   })();
 
   (function () {

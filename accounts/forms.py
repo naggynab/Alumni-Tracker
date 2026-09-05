@@ -15,9 +15,9 @@ from allauth.account.forms import (
 from allauth.account.models import EmailAddress
 
 from directory.choices import (
-    FIELD_OF_STUDY_CHOICES,
-    PROGRAM_CHOICES,
-    PROGRAM_TO_FIELD,
+    BATCH_YEAR_CHOICES,
+    batch_year_variants,
+    normalize_batch_year,
 )
 from directory.models import Alumnus, ClaimReview, FurtherStudy
 
@@ -28,11 +28,8 @@ User = get_user_model()
 
 
 def _normalize_batch(value):
-    """'2077' -> '077' to match the campus batch form used across the data."""
-    batch = str(value or "").strip()
-    if len(batch) == 4 and batch.startswith("20"):
-        return batch[1:]
-    return batch
+    """Keep registration compatible with legacy three-digit batch records."""
+    return normalize_batch_year(value)
 
 
 def normalize_date_of_birth(value):
@@ -130,15 +127,12 @@ class RegistrationForm(forms.Form):
     """Alumni Registration (see Register.svg).
 
     Creates the account and links it to an alumnus record: an existing
-    unclaimed record is matched by roll number, otherwise a new record is
-    created from the details provided so the alumnus appears in the yearbook.
+    unclaimed record is matched by roll number, batch, and date of birth;
+    otherwise a new record is created so the alumnus appears in the yearbook.
     """
 
-    first_name = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"placeholder": "Ram"}))
-    last_name = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"placeholder": "Maharjan"}))
-    program = forms.ChoiceField(choices=[("", "Select Program")] + list(PROGRAM_CHOICES))
     batch = forms.ChoiceField(
-        choices=[("", "Select Year")] + [(str(y), str(y)) for y in range(2082, 2059, -1)]
+        choices=[("", "Select Year")] + list(BATCH_YEAR_CHOICES)
     )
     roll_number = forms.CharField(
         max_length=30,
@@ -205,32 +199,29 @@ class RegistrationForm(forms.Form):
     def clean(self):
         cleaned = super().clean()
         roll_number = cleaned.get("roll_number")
-        last_name = cleaned.get("last_name")
-        if roll_number and last_name:
-            field = PROGRAM_TO_FIELD.get(cleaned.get("program"), "other")
-            batch = _normalize_batch(cleaned.get("batch"))
+        batch = _normalize_batch(cleaned.get("batch"))
+        date_of_birth = cleaned.get("date_of_birth")
+        if roll_number and batch:
             unclaimed = Alumnus.objects.filter(
                 class_roll_no__iexact=roll_number,
                 user_account__isnull=True,
             )
             if unclaimed.exists():
                 identity_matches = unclaimed.filter(
-                    last_name__iexact=last_name.strip(),
-                    batch=batch,
-                    field_of_study=field,
+                    batch__in=batch_year_variants(batch),
                 )
                 if not identity_matches.exists():
                     self.add_error(
                         "roll_number",
-                        "Those roll number, program, and batch details do not match our records.",
+                        "Those roll number and batch details do not match our records.",
                     )
-                elif not cleaned.get("date_of_birth"):
+                elif not date_of_birth:
                     self.add_error(
                         "date_of_birth",
                         "Date of birth is required to verify a pre-loaded record.",
                     )
                 elif not any(
-                    _date_matches(record, cleaned["date_of_birth"])
+                    _date_matches(record, date_of_birth)
                     for record in identity_matches
                 ):
                     self.add_error(
@@ -238,7 +229,7 @@ class RegistrationForm(forms.Form):
                         "The date of birth does not match our records.",
                     )
                 elif sum(
-                    _date_matches(record, cleaned["date_of_birth"])
+                    _date_matches(record, date_of_birth)
                     for record in identity_matches
                 ) > 1:
                     self.add_error(
@@ -252,7 +243,6 @@ class RegistrationForm(forms.Form):
 
     def save(self):
         data = self.cleaned_data
-        field = PROGRAM_TO_FIELD.get(data["program"], "other")
         batch = _normalize_batch(data["batch"])
 
         # Create the account. Local development may use optional email
@@ -273,9 +263,7 @@ class RegistrationForm(forms.Form):
         candidates = Alumnus.objects.filter(
             user_account__isnull=True,
             class_roll_no__iexact=data["roll_number"].strip(),
-            last_name__iexact=data["last_name"].strip(),
-            batch=batch,
-            field_of_study=field,
+            batch__in=batch_year_variants(batch),
         )
         alumnus = next(
             (record for record in candidates if _date_matches(record, data["date_of_birth"])),
@@ -283,10 +271,6 @@ class RegistrationForm(forms.Form):
         )
         if alumnus is None:
             alumnus = Alumnus(
-                first_name=data["first_name"].strip(),
-                last_name=data["last_name"].strip(),
-                field_of_study=field,
-                department_raw=dict(PROGRAM_CHOICES).get(data["program"], ""),
                 batch=batch,
                 class_roll_no=normalize_roll_number(data["roll_number"]),
                 date_of_birth_bs=data["date_of_birth"].strip(),
