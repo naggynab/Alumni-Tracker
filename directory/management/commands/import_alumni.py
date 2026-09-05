@@ -35,7 +35,7 @@ from directory.choices import (
     normalize_employer,
     normalize_institution,
 )
-from directory.models import Alumnus
+from directory.models import Alumnus, FurtherStudy
 
 # Map the reference dump's BE program codes to canonical fields of study.
 _BE_PROGRAM_FIELD = {
@@ -196,7 +196,7 @@ class Command(BaseCommand):
                 batch = (s.get("be_batch_bs") or s.get("msc_batch_bs") or "") or ""
                 roll = s.get("be_ioe_roll_number") or s.get("be_roll_number") or ""
 
-                Alumnus.objects.create(
+                alumnus = Alumnus.objects.create(
                     first_name=(s.get("first_name") or "").strip(),
                     middle_name=(s.get("middle_name") or "").strip(),
                     last_name=(s.get("last_name") or "").strip(),
@@ -229,6 +229,16 @@ class Command(BaseCommand):
                     # The supplied dataset has been approved for publication.
                     is_public=True,
                 )
+                if fa and any(
+                    str(fa.get(key) or "").strip()
+                    for key in ("institution", "country")
+                ):
+                    FurtherStudy.objects.create(
+                        alumnus=alumnus,
+                        degree_level="master",
+                        institution=(fa.get("institution") or "").strip(),
+                        country=fa.get("country") or "",
+                    )
                 seen_keys.add(
                     dedupe_key(field, normalize_batch(batch),
                                s.get("first_name"), s.get("last_name"))

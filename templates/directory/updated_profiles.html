@@ -1,0 +1,57 @@
+{% extends "base_app.html" %}
+{% load humanize %}
+{% block title %}Last Updated Profiles{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Last Updated Profiles</h1>
+<p class="page-sub">Alumni profiles updated within the last {{ updated_window_days }} days, newest first.</p>
+
+<section class="panel report-note">
+    <strong>{{ updated_profiles_count|intcomma }} profile{{ updated_profiles_count|pluralize }} updated</strong>
+    <span>since {{ updated_since|date:"M j, Y" }}.</span>
+    <a class="btn btn-light report-download" href="{% url 'directory:department-report' %}">Back to Department Report</a>
+</section>
+
+<section class="panel stat-panel">
+    <div class="panel-title">Updated alumni profiles</div>
+    {% if page_obj.object_list %}
+    <div class="chart-scroll">
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Alumnus</th>
+                    <th>Program / batch</th>
+                    <th>Current organization</th>
+                    <th>Current location</th>
+                    <th>Last updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alumnus in page_obj.object_list %}
+                <tr>
+                    <td>
+                        <strong>{{ alumnus.full_name }}</strong><br>
+                        <span class="muted">{{ alumnus.class_roll_no|default:"Roll number not recorded" }}</span>
+                    </td>
+                    <td>{{ alumnus.get_field_of_study_display|default:"Not recorded" }}<br><span class="muted">Batch {{ alumnus.batch|default:"—" }}</span></td>
+                    <td>{{ alumnus.employer_organization|default:"Not recorded" }}{% if alumnus.job_title %}<br><span class="muted">{{ alumnus.job_title }}</span>{% endif %}</td>
+                    <td>{{ alumnus.current_city|default:"Not recorded" }}{% if alumnus.current_country %}, {{ alumnus.current_country.name }}{% endif %}</td>
+                    <td>{{ alumnus.date_modified|date:"M j, Y g:i A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}<a class="btn btn-light" href="?page={{ page_obj.previous_page_number }}">&larr; Prev</a>{% endif %}
+        <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="btn btn-light" href="?page={{ page_obj.next_page_number }}">Next &rarr;</a>{% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="bar-empty">No alumni profiles have been updated in the last {{ updated_window_days }} days.</p>
+    {% endif %}
+</section>
+{% endblock %}

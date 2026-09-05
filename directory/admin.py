@@ -20,6 +20,7 @@ from .models import (
     ApiToken,
     CommunityGroup,
     DataConflict,
+    FurtherStudy,
     GroupMembership,
     GroupPost,
     Notification,
@@ -77,6 +78,14 @@ class FollowUpAdmin(admin.ModelAdmin):
     list_filter = ("status", "next_contact_at")
     search_fields = ("alumnus__first_name", "alumnus__last_name", "alumnus__class_roll_no")
     raw_id_fields = ("alumnus", "created_by", "updated_by")
+
+
+@admin.register(FurtherStudy)
+class FurtherStudyAdmin(admin.ModelAdmin):
+    list_display = ("alumnus", "degree_level", "degree", "institution", "country")
+    list_filter = ("degree_level", "country")
+    search_fields = ("alumnus__first_name", "alumnus__last_name", "institution", "degree")
+    raw_id_fields = ("alumnus",)
 
 
 @admin.register(ClaimReview)

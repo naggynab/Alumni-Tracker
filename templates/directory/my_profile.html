@@ -65,13 +65,21 @@
         {% if not is_department_staff %}<div class="info-block">
             <div class="info-head">
                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
-                Higher Studies Information
+                Advanced Studies
             </div>
-            <div class="info-cols c3">
-                <div class="info-item"><div class="k">University Name</div><div class="v">{{ alumnus.further_study_institution|default:"—" }}</div></div>
-                <div class="info-item"><div class="k">Degree</div><div class="v">{{ alumnus.further_study_degree|default:"—" }}</div></div>
-                <div class="info-item"><div class="k">Country of Study</div><div class="v">{% if alumnus.further_study_country %}{{ alumnus.further_study_country.name }}{% else %}—{% endif %}</div></div>
+            {% for section in study_sections %}
+            <div class="study-level">
+                <h3 class="report-subtitle">{{ section.label }}</h3>
+                {% for study in section.entries %}
+                <div class="info-cols c3 study-entry-summary">
+                    <div class="info-item"><div class="k">University / institution</div><div class="v">{{ study.institution|default:"—" }}</div></div>
+                    <div class="info-item"><div class="k">Degree obtained</div><div class="v">{{ study.degree|default:"—" }}</div></div>
+                    <div class="info-item"><div class="k">Country of study</div><div class="v">{% if study.country %}{{ study.country.name|default:study.country }}{% else %}—{% endif %}</div></div>
+                </div>
+                {% empty %}<p class="muted">No {{ section.label|lower }} record added.</p>
+                {% endfor %}
             </div>
+            {% endfor %}
         </div>{% endif %}
     </div>
   </div>

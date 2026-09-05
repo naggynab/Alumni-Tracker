@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
+from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.urls import reverse_lazy
@@ -16,15 +17,23 @@ from django.utils import timezone
 from django.views.generic import FormView
 from allauth.account.views import LoginView, PasswordResetView
 
-from directory.models import Alumnus, ClaimReview, TwoFactorCode, TwoFactorSetting
+from directory.models import (
+    Alumnus,
+    ClaimReview,
+    FurtherStudy,
+    TwoFactorCode,
+    TwoFactorSetting,
+)
 
 from .forms import (
     AlumnusProfileForm,
     ClaimRecordForm,
     DepartmentEmailLoginForm,
     DepartmentPasswordResetForm,
+    FurtherStudyFormSet,
     RegistrationForm,
     RollNumberPasswordResetForm,
+    SingleFurtherStudyFormSet,
 )
 
 
@@ -33,6 +42,62 @@ logger = logging.getLogger(__name__)
 
 def _code_hash(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+FURTHER_STUDY_LEVELS = (
+    ("bachelor", "Bachelor", SingleFurtherStudyFormSet, False),
+    ("master", "Master", FurtherStudyFormSet, True),
+    ("phd", "PhD", FurtherStudyFormSet, True),
+)
+
+
+def _study_formset(alumnus, level, formset_class, data=None):
+    queryset = FurtherStudy.objects.filter(
+        alumnus=alumnus, degree_level=level
+    ).order_by("created_at", "pk")
+    initial = []
+    if level == "master" and not queryset.exists():
+        legacy_values = {
+            "institution": alumnus.further_study_institution,
+            "degree": alumnus.further_study_degree,
+            "country": alumnus.further_study_country,
+        }
+        if any(str(value or "").strip() for value in legacy_values.values()):
+            initial = [legacy_values]
+    return formset_class(
+        data=data,
+        instance=alumnus,
+        prefix=f"{level}_studies",
+        queryset=queryset,
+        initial=initial,
+        form_kwargs={"degree_level": level},
+    )
+
+
+def _sync_legacy_further_study_fields(alumnus):
+    """Keep legacy report/filter columns aligned with the first master record."""
+    master = (
+        FurtherStudy.objects.filter(alumnus=alumnus, degree_level="master")
+        .exclude(institution="", degree="", country="")
+        .order_by("created_at", "pk")
+        .first()
+    )
+    values = {
+        "further_study_institution": master.institution if master else "",
+        "further_study_degree": master.degree if master else "",
+        "further_study_country": (
+            master.country.code if master and master.country else ""
+        ),
+    }
+    if any(getattr(alumnus, field) != value for field, value in values.items()):
+        for field, value in values.items():
+            setattr(alumnus, field, value)
+        alumnus.save(
+            update_fields=[
+                *values,
+                "date_modified",
+            ]
+        )
 
 
 class SecureLoginView(LoginView):
@@ -216,18 +281,51 @@ def edit_profile(request):
         messages.info(request, "Link your account to a record first.")
         return redirect("accounts:claim-record")
 
+    form = AlumnusProfileForm(
+        request.POST or None,
+        instance=alumnus,
+    )
+    study_formsets = [
+        {
+            "code": level,
+            "label": label,
+            "formset": _study_formset(
+                alumnus,
+                level,
+                formset_class,
+                request.POST or None,
+            ),
+            "allow_multiple": allow_multiple,
+        }
+        for level, label, formset_class, allow_multiple in FURTHER_STUDY_LEVELS
+    ]
+
     if request.method == "POST":
-        form = AlumnusProfileForm(request.POST, instance=alumnus)
-        if form.is_valid():
-            form.save()
+        profile_valid = form.is_valid()
+        study_forms_valid = True
+        for section in study_formsets:
+            if not section["formset"].is_valid():
+                study_forms_valid = False
+        if profile_valid and study_forms_valid:
+            with transaction.atomic():
+                form.save()
+                for section in study_formsets:
+                    formset = section["formset"]
+                    level = section["code"]
+                    for study in formset.save(commit=False):
+                        study.alumnus = alumnus
+                        study.degree_level = level
+                        study.save()
+                    for study in formset.deleted_objects:
+                        study.delete()
+                _sync_legacy_further_study_fields(alumnus)
             messages.success(request, "Your profile has been updated.")
             return redirect("directory:my-profile")
-    else:
-        form = AlumnusProfileForm(instance=alumnus)
 
     context = {
         "form": form,
         "alumnus": alumnus,
+        "study_formsets": study_formsets,
         "app_alumnus": alumnus,
         "nav_active": "edit",
     }

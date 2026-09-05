@@ -71,6 +71,7 @@ input,select,textarea{
 input::placeholder,textarea::placeholder{color:var(--muted-2)}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--navy);
     box-shadow:0 0 0 3px var(--focus);background:#fff}
+input:disabled,select:disabled,textarea:disabled{cursor:not-allowed;opacity:.62}
 select{appearance:none;-webkit-appearance:none;background-image:
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
     background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;cursor:pointer}
@@ -349,6 +350,19 @@ ul.errorlist{list-style:none;margin:6px 0 0;padding:0;color:#c53a2c;font-size:.8
 .service-actions .btn{white-space:nowrap}
 .inline-review{margin-top:10px}
 .inline-review textarea{max-width:220px}
+
+/* education and further-study formsets */
+.study-intro{color:var(--muted);font-size:.9rem;margin:-8px 0 18px}
+.study-level-form{border-top:1px solid var(--line);padding:22px 0 4px}
+.study-level-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
+.study-level-heading h3{font-size:1rem}
+.study-entry-form{border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:14px}
+.study-entry-form[hidden]{display:none}
+.study-delete-field{display:none}
+.study-entry-form .remove-study{color:var(--danger);font-size:.84rem;padding:8px 0 0}
+.study-entry-summary + .study-entry-summary{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.study-level .report-subtitle{margin-top:0}
+
 /* ========================================================================== 
    RESPONSIVE
    ========================================================================== */
@@ -388,4 +402,5 @@ ul.errorlist{list-style:none;margin:6px 0 0;padding:0;color:#c53a2c;font-size:.8
     .pubfooter .dev{text-align:center}
     .workflow-list li{align-items:flex-start;flex-direction:column}
     .workflow-list span{text-align:left}
+    .study-level-heading{align-items:flex-start;flex-direction:column}
 }

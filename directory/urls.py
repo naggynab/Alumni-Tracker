@@ -93,6 +93,11 @@ urlpatterns = [
     ),
     path("reports/department/", views.department_report, name="department-report"),
     path(
+        "reports/department/updated-profiles/",
+        views.department_updated_profiles,
+        name="department-updated-profiles",
+    ),
+    path(
         "reports/department/data-quality/",
         views.department_data_quality,
         name="department-data-quality",

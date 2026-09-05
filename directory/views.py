@@ -1,5 +1,9 @@
 import csv
+<<<<<<< HEAD
+from datetime import timedelta
+=======
 import logging
+>>>>>>> origin/main
 
 from django.conf import settings
 from django.contrib import messages
@@ -15,7 +19,7 @@ from django.shortcuts import get_object_or_404, render
 from .filters import AlumnusFilter, get_filter_option_data
 from .forms import ReportFilterForm
 from .audit import log_department_action
-from .models import AlumniFavorite, Alumnus, ClaimReview, FollowUp
+from .models import AlumniFavorite, Alumnus, ClaimReview, FollowUp, FurtherStudy
 from .permissions import (
     department_admin_required,
     department_data_editor_required,
@@ -31,7 +35,16 @@ from .workflow_forms import (
 )
 
 User = get_user_model()
+<<<<<<< HEAD
+UPDATED_PROFILE_WINDOW_DAYS = 30
+FURTHER_STUDY_LEVELS = (
+    ("bachelor", "Bachelor"),
+    ("master", "Master"),
+    ("phd", "PhD"),
+)
+=======
 logger = logging.getLogger(__name__)
+>>>>>>> origin/main
 
 
 def home(request):
@@ -115,6 +128,38 @@ def _graduation_year(alumnus):
     return enrolled + 4
 
 
+def _study_sections(alumnus):
+    studies = FurtherStudy.objects.filter(alumnus=alumnus).order_by(
+        "degree_level", "created_at", "pk"
+    )
+    by_level = {level: [] for level, _label in FURTHER_STUDY_LEVELS}
+    for study in studies:
+        by_level[study.degree_level].append(study)
+
+    # Keep profiles readable if the migration has not yet copied a legacy
+    # postgraduate record into FurtherStudy.
+    if not by_level["master"] and any(
+        str(value or "").strip()
+        for value in (
+            alumnus.further_study_institution,
+            alumnus.further_study_degree,
+            alumnus.further_study_country,
+        )
+    ):
+        by_level["master"] = [
+            {
+                "institution": alumnus.further_study_institution,
+                "degree": alumnus.further_study_degree,
+                "country": alumnus.further_study_country,
+            }
+        ]
+
+    return [
+        {"code": level, "label": label, "entries": by_level[level]}
+        for level, label in FURTHER_STUDY_LEVELS
+    ]
+
+
 @login_required
 def my_profile(request):
     """Show the signed-in user's linked alumnus record, if any."""
@@ -123,6 +168,7 @@ def my_profile(request):
         "alumnus": alumnus,
         "app_alumnus": alumnus,
         "grad_year": _graduation_year(alumnus) if alumnus else None,
+        "study_sections": _study_sections(alumnus) if alumnus else [],
         "nav_active": "profile",
     }
     return render(request, "directory/my_profile.html", context)
@@ -150,6 +196,7 @@ def department_report(request):
     """
     form, queryset = _report_selection(request)
     log_department_action(request, "report_view", request.GET)
+    updated_since = timezone.now() - timedelta(days=UPDATED_PROFILE_WINDOW_DAYS)
 
     context = {
         "form": form,
@@ -157,10 +204,41 @@ def department_report(request):
         "selection": form.summary(),
         "is_filtered": any(form.data.get(name) for name in form.fields),
         "campus_total": Alumnus.objects.count(),
+        "updated_profiles_count": Alumnus.objects.filter(
+            date_modified__gte=updated_since
+        ).count(),
         "app_alumnus": getattr(request.user, "alumnus_profile", None),
         "nav_active": "report",
     }
     return render(request, "directory/department_report.html", context)
+
+
+@department_required
+def department_updated_profiles(request):
+    """List alumni profiles updated during the recent activity window."""
+    updated_since = timezone.now() - timedelta(days=UPDATED_PROFILE_WINDOW_DAYS)
+    profiles = Alumnus.objects.filter(
+        date_modified__gte=updated_since
+    ).order_by("-date_modified", "last_name", "first_name")
+    paginator = Paginator(profiles, 50)
+    page = paginator.get_page(request.GET.get("page"))
+    log_department_action(
+        request,
+        "updated_profiles_view",
+        {"days": UPDATED_PROFILE_WINDOW_DAYS},
+    )
+    return render(
+        request,
+        "directory/updated_profiles.html",
+        {
+            "page_obj": page,
+            "updated_profiles_count": paginator.count,
+            "updated_since": updated_since,
+            "updated_window_days": UPDATED_PROFILE_WINDOW_DAYS,
+            "app_alumnus": getattr(request.user, "alumnus_profile", None),
+            "nav_active": "report",
+        },
+    )
 
 
 @department_required
