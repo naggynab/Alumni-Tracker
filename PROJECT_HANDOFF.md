@@ -294,8 +294,10 @@ can access broader internal data, so staff routes must not be made public casual
 
 ### Registration identity matching
 
-Registration matches a pre-loaded record using roll number, last name, batch,
-program/field, and date of birth. It does not trust a roll number alone.
+Registration matches a pre-loaded record using roll number, batch, and date of
+birth. It does not trust a roll number alone. Names and program are completed
+from the existing record or later through the profile flow rather than being
+required during account registration.
 
 The date field is B.S. The matching logic normalizes equivalent spellings such as:
 

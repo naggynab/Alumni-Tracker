@@ -18,15 +18,15 @@ authentication story and campus-wide (multi-faculty) search.
 - A recovery email is saved during registration and supports password reset
 - **Google** sign-in (OAuth)
 - Brute-force throttling (5 failed logins / 5 min)
-- Alumni **claim** their pre-loaded record by confirming batch + field + last
-  name + (roll number *or* date of birth) — stricter than the reference app,
-  which authenticated on date of birth alone.
+- Alumni **claim** their pre-loaded record by confirming batch + roll number +
+  date of birth — stricter than the reference app, which authenticated on date
+  of birth alone.
 
-**Six-filter alumni search** (`/alumni/`)
+**Seven-filter alumni search** (`/alumni/`)
 | Filter | Field |
 | --- | --- |
 | Name | first / middle / last (each term matched across all name parts) |
-| Batch | enrollment batch/year (e.g. `078`) |
+| Batch | enrollment batch/year (e.g. `2078`; legacy `078` is also accepted) |
 | Field of study | Computer, Electronics, Electrical, Civil, Mechanical, Architecture, Aerospace, Chemical, Science |
 | Current city | city the alumnus currently lives in |
 | Works at | employer / organization |
@@ -45,7 +45,7 @@ remain handled through the application's private contact workflows.
 alumni_tracker/     Django project settings, root URLs
 directory/          Alumnus model, search filters, directory views
   ├─ choices.py     canonical fields of study + normalisers for messy source data
-  ├─ filters.py     the six-filter FilterSet
+  ├─ filters.py     the seven-filter FilterSet
   └─ management/commands/import_alumni.py
 accounts/           account claim + profile-edit flow (auth via allauth)
 templates/          base layout, directory pages, and custom auth pages
@@ -271,5 +271,5 @@ publication; review any future dataset's approval status before importing it.
 python manage.py test
 ```
 
-Covers the source-data normalisers, all six search filters, record visibility,
+Covers the source-data normalisers, all seven search filters, record visibility,
 and the account claim flow (success, wrong details, and missing identity proof).

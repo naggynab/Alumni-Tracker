@@ -21,9 +21,9 @@
         <article class="result-card">
             <img src="{% static 'pictures/default_user.png' %}" alt="">
             <div style="min-width:0">
-                <div class="rc-name"><a href="{{ a.get_absolute_url }}">{{ a.full_name }}</a></div>
+                <div class="rc-name"><a href="{{ a.get_absolute_url }}">{{ a.full_name|default:"Unnamed alumni" }}</a></div>
                 <div class="result-tags">
-                    {% if a.field_of_study %}<span class="tag">{{ a.get_field_of_study_display }}</span>{% endif %}
+                    {% if a.program_display %}<span class="tag">{{ a.program_display }}</span>{% endif %}
                     {% if a.batch %}<span class="tag">Batch {{ a.batch }}</span>{% endif %}
                 </div>
                 {% if a.employer_organization %}

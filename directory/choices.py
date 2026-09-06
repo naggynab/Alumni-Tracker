@@ -74,6 +74,29 @@ EMPLOYMENT_STATUS_CHOICES = (
     ("Retired", "Retired"),
 )
 
+# The public forms use the full B.S. year, while imported legacy records may
+# store the same batch in the campus' three-digit form (for example, 2078 as
+# 078). Keep the user-facing range in one place and let filters support both
+# representations without rewriting existing records.
+BATCH_YEAR_CHOICES = tuple((str(year), str(year)) for year in range(2051, 2081))
+
+
+def normalize_batch_year(value):
+    """Return the legacy three-digit storage form for a full batch year."""
+    batch = str(value or "").strip()
+    if len(batch) == 4 and batch.startswith("20"):
+        return batch[1:]
+    return batch
+
+
+def batch_year_variants(value):
+    """Return full and legacy values that represent the requested batch."""
+    batch = str(value or "").strip()
+    normalized = normalize_batch_year(batch)
+    if len(normalized) == 3 and normalized.isdigit():
+        return tuple(dict.fromkeys((batch, normalized, f"2{normalized}")))
+    return (batch,) if batch else ()
+
 
 # Keyword-based normaliser: maps a raw faculty string to a canonical field.
 # Order matters — more specific keywords are checked first.

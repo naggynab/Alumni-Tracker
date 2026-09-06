@@ -124,6 +124,12 @@ class Alumnus(models.Model):
             p for p in [self.first_name, self.middle_name, self.last_name] if p
         )
 
+    @property
+    def program_display(self):
+        """Return stored program text, with a safe canonical fallback."""
+        department = (self.department_raw or "").strip()
+        return department or self.get_field_of_study_display() or self.field_of_study
+
     def save(self, *args, **kwargs):
         """Keep searchable canonical keys synchronized with raw text fields."""
         self.current_city_canonical = normalize_city(self.current_city)
