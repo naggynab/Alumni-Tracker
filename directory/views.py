@@ -1,9 +1,6 @@
 import csv
-<<<<<<< HEAD
 from datetime import timedelta
-=======
 import logging
->>>>>>> origin/main
 
 from django.conf import settings
 from django.contrib import messages
@@ -35,16 +32,15 @@ from .workflow_forms import (
 )
 
 User = get_user_model()
-<<<<<<< HEAD
+
 UPDATED_PROFILE_WINDOW_DAYS = 30
 FURTHER_STUDY_LEVELS = (
     ("bachelor", "Bachelor"),
     ("master", "Master"),
     ("phd", "PhD"),
 )
-=======
+
 logger = logging.getLogger(__name__)
->>>>>>> origin/main
 
 
 def home(request):
