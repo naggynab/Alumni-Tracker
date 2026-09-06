@@ -19,6 +19,7 @@
     <a class="btn btn-light" href="{% url 'directory:department-report-compare' %}">Compare cohorts</a>
     <a class="btn btn-light" href="{% url 'directory:follow-up-queue' %}">Follow-up queue</a>
     <a class="btn btn-light" href="{% url 'directory:department-verification' %}">Claim verification</a>
+    <a class="btn btn-light" href="{% url 'directory:department-updated-profiles' %}">Last updated profiles ({{ updated_profiles_count|intcomma }})</a>
     {% if can_edit_workflows %}<a class="btn btn-light" href="{% url 'directory:student-requests' %}">Student requests &amp; replies</a><a class="btn btn-light" href="{% url 'directory:department-feedback' %}">Student feedback</a><a class="btn btn-light" href="{% url 'directory:correction-review-queue' %}">Correction requests</a><a class="btn btn-light" href="{% url 'directory:community-moderation' %}">Community moderation</a>{% endif %}
     {% if can_manage_department_roles %}<a class="btn btn-light" href="{% url 'directory:department-roles' %}">Role management</a>{% endif %}
 </div>

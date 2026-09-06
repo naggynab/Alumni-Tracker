@@ -168,6 +168,32 @@ class Alumnus(models.Model):
         return reverse("directory:alumnus-detail", args=[self.pk])
 
 
+class FurtherStudy(models.Model):
+    """One bachelor, master, or PhD study record for an alumnus."""
+
+    DEGREE_LEVEL_CHOICES = (
+        ("bachelor", "Bachelor"),
+        ("master", "Master"),
+        ("phd", "PhD"),
+    )
+
+    alumnus = models.ForeignKey(
+        Alumnus, on_delete=models.CASCADE, related_name="further_studies"
+    )
+    degree_level = models.CharField(max_length=15, choices=DEGREE_LEVEL_CHOICES)
+    institution = models.CharField(max_length=150, blank=True)
+    degree = models.CharField(max_length=100, blank=True)
+    country = CountryField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["degree_level", "created_at", "pk"]
+
+    def __str__(self):
+        return f"{self.get_degree_level_display()} study for {self.alumnus}"
+
+
 class FollowUp(models.Model):
     """A small officer-owned work item for records needing attention."""
 

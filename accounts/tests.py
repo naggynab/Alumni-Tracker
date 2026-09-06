@@ -18,12 +18,14 @@ from .forms import (
     ClaimRecordForm,
     DepartmentEmailLoginForm,
     DepartmentPasswordResetForm,
+    AlumnusProfileForm,
+    FurtherStudyFormSet,
     RegistrationForm,
     RollNumberLoginForm,
     RollNumberPasswordResetForm,
 )
 from directory.choices import FIELD_COMPUTER
-from directory.models import Alumnus
+from directory.models import Alumnus, FurtherStudy
 from directory.permissions import is_department_only_staff
 
 User = get_user_model()
@@ -542,6 +544,79 @@ class RegistrationSecurityTests(TestCase):
         self.assertFalse(reset_form.is_valid())
         self.assertIn("number", str(reset_form.errors["password1"]))
         self.assertIn("special character", str(reset_form.errors["password1"]))
+
+
+class ProfileEmploymentFormTests(TestCase):
+    def test_non_employed_profile_clears_organization_and_designation(self):
+        alumnus = Alumnus.objects.create(
+            first_name="Profile",
+            last_name="Owner",
+            employment_status="Employed",
+            employer_organization="Old Organization",
+            job_title="Old Designation",
+        )
+        form = AlumnusProfileForm(
+            data={
+                "employment_status": "Unemployed",
+                "employer_organization": "Should not be saved",
+                "job_title": "Should not be saved",
+            },
+            instance=alumnus,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        alumnus.refresh_from_db()
+        self.assertEqual(alumnus.employer_organization, "")
+        self.assertEqual(alumnus.job_title, "")
+
+    def test_employed_profile_can_save_organization_and_designation(self):
+        alumnus = Alumnus.objects.create(first_name="Profile", last_name="Owner")
+        form = AlumnusProfileForm(
+            data={
+                "employment_status": "Employed",
+                "employer_organization": "New Organization",
+                "job_title": "New Designation",
+            },
+            instance=alumnus,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        alumnus.refresh_from_db()
+        self.assertEqual(alumnus.employer_organization, "New Organization")
+        self.assertEqual(alumnus.job_title, "New Designation")
+
+
+class FurtherStudyFormsetTests(TestCase):
+    def test_multiple_master_records_can_be_saved(self):
+        alumnus = Alumnus.objects.create(first_name="Study", last_name="Owner")
+        formset = FurtherStudyFormSet(
+            data={
+                "master_studies-TOTAL_FORMS": "2",
+                "master_studies-INITIAL_FORMS": "0",
+                "master_studies-MIN_NUM_FORMS": "0",
+                "master_studies-MAX_NUM_FORMS": "1000",
+                "master_studies-0-degree_level": "master",
+                "master_studies-0-institution": "Tribhuvan University",
+                "master_studies-0-degree": "M.Tech",
+                "master_studies-0-country": "NP",
+                "master_studies-1-degree_level": "master",
+                "master_studies-1-institution": "Asian Institute of Technology",
+                "master_studies-1-degree": "MBA",
+                "master_studies-1-country": "TH",
+            },
+            instance=alumnus,
+            prefix="master_studies",
+            form_kwargs={"degree_level": "master"},
+        )
+
+        self.assertTrue(formset.is_valid(), formset.errors)
+        formset.save()
+
+        studies = FurtherStudy.objects.filter(alumnus=alumnus).order_by("pk")
+        self.assertEqual(studies.count(), 2)
+        self.assertEqual(list(studies.values_list("degree_level", flat=True)), ["master", "master"])
 
 
 class LoginFlowTests(TestCase):

@@ -67,22 +67,61 @@
             Professional Experience
         </div>
         <div class="form-grid">
-            <div><label>Current Organization</label>{{ form.employer_organization }}</div>
-            <div><label>Designation</label>{{ form.job_title }}</div>
+            <div class="employment-dependent">
+                <label for="{{ form.employer_organization.id_for_label }}">Current Organization</label>
+                {{ form.employer_organization }}
+            </div>
+            <div class="employment-dependent">
+                <label for="{{ form.job_title.id_for_label }}">Designation</label>
+                {{ form.job_title }}
+            </div>
             <div><label>Employment Status</label>{{ form.employment_status }}</div>
         </div>
+        <p class="helptext" id="employment-help">Current organization and designation can be entered only when Employment Status is Employed.</p>
     </div>
 
-    <!-- Advanced Studies -->
-    <div class="panel">
+    <!-- Education and Further Studies -->
+    <div class="panel study-form-panel">
         <div class="panel-title">
             <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 3 6 3s6-2 6-3v-5"/></svg>
             Advanced Studies
         </div>
-        <div class="form-grid">
-            <div><label>University Name (Post-Grad)</label>{{ form.further_study_institution }}</div>
-            <div><label>Degree Obtained</label>{{ form.further_study_degree }}</div>
-            <div><label>Country of Study</label>{{ form.further_study_country }}</div>
+        <p class="study-intro">Add your bachelor, master, and PhD education. You can add more than one master or PhD record.</p>
+        {% for section in study_formsets %}
+        <section class="study-level-form" data-study-level="{{ section.code }}">
+            <div class="study-level-heading">
+                <h3>{{ section.label }}</h3>
+                {% if section.allow_multiple %}<button type="button" class="btn btn-light add-study" data-target="{{ section.code }}">+ Add another</button>{% endif %}
+            </div>
+            {{ section.formset.management_form }}
+            <div class="study-entries" data-entries-for="{{ section.code }}">
+                {% for study_form in section.formset.forms %}
+                <div class="study-entry-form" data-study-form>
+                    {{ study_form.id }}{{ study_form.degree_level }}<span class="study-delete-field">{{ study_form.DELETE }}</span>
+                    {% if study_form.non_field_errors %}<div class="form-errors">{{ study_form.non_field_errors }}</div>{% endif %}
+                    <div class="form-grid">
+                        <div><label for="{{ study_form.institution.id_for_label }}">{{ study_form.institution.label }}</label>{{ study_form.institution }}{{ study_form.institution.errors }}</div>
+                        <div><label for="{{ study_form.degree.id_for_label }}">{{ study_form.degree.label }}</label>{{ study_form.degree }}{{ study_form.degree.errors }}</div>
+                        <div><label for="{{ study_form.country.id_for_label }}">{{ study_form.country.label }}</label>{{ study_form.country }}{{ study_form.country.errors }}</div>
+                    </div>
+                    {% if section.allow_multiple %}<button type="button" class="btn btn-ghost remove-study" data-remove-study>Remove</button>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <template data-study-template="{{ section.code }}">
+                <div class="study-entry-form" data-study-form>
+                    {{ section.formset.empty_form.id }}{{ section.formset.empty_form.degree_level }}<span class="study-delete-field">{{ section.formset.empty_form.DELETE }}</span>
+                    <div class="form-grid">
+                        <div><label for="{{ section.formset.empty_form.institution.id_for_label }}">{{ section.formset.empty_form.institution.label }}</label>{{ section.formset.empty_form.institution }}</div>
+                        <div><label for="{{ section.formset.empty_form.degree.id_for_label }}">{{ section.formset.empty_form.degree.label }}</label>{{ section.formset.empty_form.degree }}</div>
+                        <div><label for="{{ section.formset.empty_form.country.id_for_label }}">{{ section.formset.empty_form.country.label }}</label>{{ section.formset.empty_form.country }}</div>
+                    </div>
+                    <button type="button" class="btn btn-ghost remove-study" data-remove-study>Remove</button>
+                </div>
+            </template>
+        </section>
+        {% endfor %}
+        {% if not study_formsets %}<p class="muted">No study sections are available.</p>{% endif %}
         </div>
     </div>
 
@@ -91,4 +130,56 @@
         <button class="btn btn-primary" type="submit">Save Profile Changes</button>
     </div>
 </form>
+<script>
+(function () {
+    const status = document.getElementById("{{ form.employment_status.id_for_label }}");
+    const dependentFields = [
+        document.getElementById("{{ form.employer_organization.id_for_label }}"),
+        document.getElementById("{{ form.job_title.id_for_label }}"),
+    ];
+
+    if (!status || dependentFields.some((field) => !field)) {
+        return;
+    }
+
+    function updateEmploymentFields() {
+        const employed = status.value === "Employed";
+        dependentFields.forEach(function (field) {
+            field.disabled = !employed;
+            field.setAttribute("aria-disabled", String(!employed));
+        });
+    }
+
+    status.addEventListener("change", updateEmploymentFields);
+    updateEmploymentFields();
+})();
+</script>
+<script>
+(function () {
+    document.querySelectorAll(".add-study").forEach(function (button) {
+        button.addEventListener("click", function () {
+            const level = button.dataset.target;
+            const section = document.querySelector('[data-study-level="' + level + '"]');
+            const entries = section.querySelector('[data-entries-for="' + level + '"]');
+            const template = section.querySelector('[data-study-template="' + level + '"]');
+            const totalForms = section.querySelector('input[name$="-TOTAL_FORMS"]');
+            const index = Number(totalForms.value);
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = template.innerHTML.replace(/__prefix__/g, index);
+            const row = wrapper.firstElementChild;
+            row.querySelector('[name$="-degree_level"]').value = level;
+            entries.appendChild(row);
+            totalForms.value = index + 1;
+        });
+    });
+    document.addEventListener("click", function (event) {
+        const button = event.target.closest("[data-remove-study]");
+        if (!button) return;
+        const row = button.closest("[data-study-form]");
+        const deleteField = row.querySelector('input[name$="-DELETE"]');
+        if (deleteField) deleteField.value = "on";
+        row.hidden = true;
+    });
+})();
+</script>
 {% endblock %}
