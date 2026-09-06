@@ -7,4 +7,6 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-start "" "http://127.0.0.1:8000/"
+set "START_URL=http://127.0.0.1:8000/"
+if exist "%~dp0.run\django-server.url" set /p START_URL=<"%~dp0.run\django-server.url"
+start "" "%START_URL%"

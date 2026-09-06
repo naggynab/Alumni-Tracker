@@ -15,6 +15,7 @@ from allauth.account.models import EmailAddress
 
 from directory.choices import (
     BATCH_YEAR_CHOICES,
+    FIELD_OF_STUDY_CHOICES,
     batch_year_variants,
     normalize_batch_year,
 )

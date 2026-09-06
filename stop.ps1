@@ -3,6 +3,23 @@ $ErrorActionPreference = "Stop"
 Set-Location -LiteralPath $PSScriptRoot
 
 $pidFile = Join-Path $PSScriptRoot ".run\django-server.pid"
+$urlFile = Join-Path $PSScriptRoot ".run\django-server.url"
+$port = 8000
+if ($env:ALUMNI_TRACKER_PORT) {
+    $configuredPort = 0
+    if ([int]::TryParse($env:ALUMNI_TRACKER_PORT, [ref] $configuredPort) -and
+        $configuredPort -ge 1 -and $configuredPort -le 65535) {
+        $port = $configuredPort
+    }
+}
+elseif (Test-Path -LiteralPath $urlFile) {
+    try {
+        $port = ([Uri](Get-Content -LiteralPath $urlFile -Raw).Trim()).Port
+    }
+    catch {
+        $port = 8000
+    }
+}
 
 function Get-ServerProcess([int] $processId) {
     try {
@@ -45,12 +62,14 @@ $savedPidText = (Get-Content -LiteralPath $pidFile -Raw).Trim()
 $savedPid = 0
 if (-not [int]::TryParse($savedPidText, [ref] $savedPid)) {
     Remove-Item -LiteralPath $pidFile -Force
+    Remove-Item -LiteralPath $urlFile -Force -ErrorAction SilentlyContinue
     throw "The PID file was invalid and has been removed."
 }
 
 $server = Get-ServerProcess $savedPid
 if (-not $server) {
     Remove-Item -LiteralPath $pidFile -Force
+    Remove-Item -LiteralPath $urlFile -Force -ErrorAction SilentlyContinue
     Write-Host "Alumni Tracker is already stopped. Removed a stale PID file."
     exit 0
 }
@@ -62,7 +81,7 @@ $stopped = $false
 for ($attempt = 0; $attempt -lt 20; $attempt++) {
     Start-Sleep -Milliseconds 500
     if (-not (Get-Process -Id $savedPid -ErrorAction SilentlyContinue) -and
-        -not (Test-TcpPort "127.0.0.1" 8000)) {
+        -not (Test-TcpPort "127.0.0.1" $port)) {
         $stopped = $true
         break
     }
@@ -73,4 +92,5 @@ if (-not $stopped) {
 }
 
 Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $urlFile -Force -ErrorAction SilentlyContinue
 Write-Host "Alumni Tracker stopped."
