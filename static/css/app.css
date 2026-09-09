@@ -281,6 +281,35 @@ ul.errorlist{list-style:none;margin:6px 0 0;padding:0;color:#c53a2c;font-size:.8
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:22px}
 .stat-panel{padding:24px 26px;margin-bottom:0}
 .stat-panel .panel-title{font-size:1.05rem;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.map-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:22px;margin:22px 0}
+.map-panel{padding:24px 26px;margin:0;min-width:0}
+.map-heading{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.map-heading .panel-title{margin-bottom:5px;padding-bottom:0;border-bottom:0}
+.map-subtitle{color:var(--muted);font-size:.82rem;margin:0 0 16px}
+.map-total{color:var(--heading);font-size:.78rem;font-weight:700;white-space:nowrap;padding-top:4px}
+.distribution-map{height:360px;width:100%;border:1px solid var(--line);background:#eaf1f6;z-index:0}
+.distribution-map .leaflet-control-attribution{font-size:9px}
+.distribution-pin-icon{background:transparent;border:0}
+.distribution-pin{display:block;width:20px;height:20px;background:var(--pin-color);border:2px solid #fff;
+    border-radius:50% 50% 50% 0;box-shadow:0 2px 5px rgba(15,28,63,.28);transform:rotate(-45deg) scale(var(--pin-scale));
+    transform-origin:50% 50%;transition:transform .15s ease,filter .15s ease}
+.distribution-pin>span{display:block;width:6px;height:6px;margin:5px auto 0;border-radius:50%;background:#fff;opacity:.9}
+.distribution-pin-icon:hover .distribution-pin{filter:brightness(1.08);transform:rotate(-45deg) scale(1.1)}
+.distribution-tooltip{background:var(--navy);border:0;border-radius:7px;box-shadow:0 5px 16px rgba(15,28,63,.2);color:#fff;padding:8px 10px}
+.distribution-tooltip:before{border-top-color:var(--navy)}
+.distribution-tooltip span,.distribution-tooltip strong{display:block;line-height:1.35}
+.distribution-tooltip span{font-size:.72rem;color:#cbd6eb}
+.distribution-tooltip strong{font-size:.82rem;color:#fff}
+.distribution-tooltip b{color:#f5cf7a}
+.map-footer{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-top:13px;color:var(--muted);font-size:.77rem}
+.map-footer>span{display:inline-flex;align-items:center;gap:6px}
+.map-key-dot{display:inline-block;border-radius:50%;background:#2878b5;border:1px solid #fff;box-shadow:0 0 0 1px #b9c7d8}
+.map-key-small{height:9px;width:9px}
+.map-key-large{height:17px;width:17px;background:#e06e5f}
+.map-note{flex-basis:100%;color:var(--muted-2);font-size:.72rem}
+.map-empty{color:var(--muted);background:rgba(255,255,255,.9);padding:10px 12px;margin:130px auto 0;width:max-content;max-width:calc(100% - 30px);text-align:center;font-size:.82rem}
+.leaflet-popup-content{font-family:inherit;font-size:.82rem;line-height:1.6}
+.leaflet-popup-content strong{color:var(--heading);font-size:.9rem}
 
 .bar-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
 .bar-row{display:grid;grid-template-columns:minmax(96px,1.15fr) minmax(60px,2fr) auto;
@@ -294,6 +323,9 @@ ul.errorlist{list-style:none;margin:6px 0 0;padding:0;color:#c53a2c;font-size:.8
     font-variant-numeric:tabular-nums;white-space:nowrap}
 .bar-val em{display:block;font-style:normal;font-size:.74rem;font-weight:500;color:var(--muted-2)}
 .bar-empty{color:var(--muted);font-size:.9rem;margin:0}
+.country-breakdown .bar-label{font-size:.88rem;font-weight:600;line-height:1.35}
+.country-breakdown .bar-label em{font-size:.74rem;font-weight:500;line-height:1.35}
+.country-chart text{font-size:12px;font-weight:400}
 
 /* staff report additions: same tokens, panels, and type scale as the app shell */
 .report-note{color:var(--muted);font-size:.9rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -382,6 +414,11 @@ ul.errorlist{list-style:none;margin:6px 0 0;padding:0;color:#c53a2c;font-size:.8
 @media (max-width:560px){
     .info-cols,.info-cols.c3{grid-template-columns:1fr}
     .stat-grid{grid-template-columns:1fr}
+    .map-grid{grid-template-columns:1fr}
+    .map-panel{padding:20px 18px}
+    .distribution-map{height:320px}
+    .map-heading{display:block}
+    .map-total{display:block;padding-top:0;margin-bottom:8px}
     .report-filters{flex-direction:column;align-items:stretch}
     .rf-actions .btn{flex:1}
     .pubfooter .inner{flex-direction:column;text-align:center}
